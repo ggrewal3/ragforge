@@ -1,10 +1,13 @@
 """Retrieval benchmark: document-level and section-level (evidence-level) metrics.
 
 Usage:
-    python -m src.evaluate --split development               # inspect / compare / tune here
-    python -m src.evaluate --split development --failures    # plus per-question failure analysis
-    python -m src.evaluate --split test                      # held-out: final reporting only
-    python -m src.evaluate --split all                       # descriptive reporting only
+    python -m src.evaluate --split development                      # dense (default method)
+    python -m src.evaluate --split development --method bm25        # one method: dense | bm25 | hybrid
+    python -m src.evaluate --split development --compare            # all three methods side by side
+    python -m src.evaluate --split development --failures           # plus per-question diagnostics
+    python -m src.evaluate --split development --compare --failures # plus section ranks across methods
+    python -m src.evaluate --split test --compare                   # held-out: final reporting only
+    python -m src.evaluate --split all                              # descriptive reporting only
 
 Two ranked lists are scored for each question, both taken from the same top-k chunks:
 
@@ -22,6 +25,8 @@ both levels. Only the ranked list passed in differs.
 import argparse
 import json
 import random
+import statistics
+import time
 from pathlib import Path
 
 from src.ingest import PROJECT_ROOT
@@ -249,13 +254,48 @@ def summarize(questions, rankings, k=DEFAULT_K):
 
 
 def rank_all_chunks(questions, model, chunks, chunk_embeddings):
-    """Full chunk ranking per question. Metrics use the top k; failure analysis uses deeper ranks."""
+    """Full dense chunk ranking per question (M1.5 interface). Metrics use the top k; failure analysis uses deeper ranks."""
     from src.retrieve import retrieve
 
     return {
         question["question_id"]: retrieve(question["question"], model, chunks, chunk_embeddings, top_k=len(chunks))
         for question in questions
     }
+
+
+def rank_questions(questions, index, method):
+    """Full ranking per question for one method, plus per-query latency in milliseconds.
+
+    Latency covers query-time work only (query embedding, scoring, sorting,
+    fusion), not model loading or index construction. One untimed warm-up
+    query runs first so one-off initialization does not land on the first
+    timed question. BM25 rankings contain only chunks that share a term with
+    the query, so they can be shorter than the chunk list.
+    """
+    from src.retrieve import search
+
+    n_chunks = len(index["chunks"])
+    search("warm-up query", index, method, top_k=n_chunks)
+    rankings, latencies_ms = {}, []
+    for question in questions:
+        start = time.perf_counter()
+        rankings[question["question_id"]] = search(question["question"], index, method, top_k=n_chunks)
+        latencies_ms.append((time.perf_counter() - start) * 1000.0)
+    return rankings, latencies_ms
+
+
+def latency_stats(latencies_ms):
+    ordered = sorted(latencies_ms)
+    return {
+        "mean_ms": statistics.fmean(ordered),
+        "median_ms": statistics.median(ordered),
+        "max_ms": ordered[-1],
+    }
+
+
+def section_rank(ranking, section_id):
+    """1-based chunk rank of the first chunk from one section, or None if the ranking never contains it."""
+    return first_relevant_rank(ranking, [section_id])
 
 
 # ---------------------------------------------------------------------------
@@ -310,10 +350,13 @@ def failure_analysis(summary, departments_by_document, k=DEFAULT_K):
     for row in summary["per_question"]:
         question, ranking = row["question"], row["ranking"]
         if row["section_hit@1"] == 0.0:
-            label, relation = diagnose(question, ranking[0], departments_by_document)
+            if ranking:
+                label, relation = diagnose(question, ranking[0], departments_by_document)
+            else:
+                label, relation = "no results", "retriever returned nothing"
             top1_misses.append({
                 "question": question,
-                "top_chunk": ranking[0],
+                "top_chunk": ranking[0] if ranking else None,
                 "first_relevant_rank": first_relevant_rank(ranking, question["relevant_section_ids"]),
                 "diagnosis": label,
                 "relation": relation,
@@ -342,14 +385,20 @@ METRIC_LABELS = (
 SMALL_SAMPLE = 5
 
 
-def print_summary(summary, split, show_per_question):
+METHOD_NAMES = {"dense": "Dense", "bm25": "BM25", "hybrid": "Hybrid (RRF)"}
+
+
+def print_summary(summary, split, show_per_question, method="dense", latency=None):
     overall = summary["overall"]
-    print("\nRAGForge — Dense Retrieval Benchmark")
+    print(f"\nRAGForge — {METHOD_NAMES[method]} Retrieval Benchmark")
     print(f"Split: {split}")
     print(f"Questions: {overall['count']}")
     for key, label in METRIC_LABELS:
         print(f"{label + ':':<20}{overall[key]:.3f}")
     print(f"{'Document MRR@5:':<20}{overall['document_mrr@5']:.3f}   (M1 metric, kept for comparison)")
+    if latency:
+        print(f"{'Query latency:':<20}mean {latency['mean_ms']:.2f} ms, median {latency['median_ms']:.2f} ms, "
+              f"max {latency['max_ms']:.2f} ms")
 
     columns = ("document_recall@5", "section_recall@1", "section_hit@1", "section_recall@5", "section_mrr@5")
     print(f"\n{'Category':<30}{'N':>3}{'DocR@5':>8}{'SecR@1':>8}{'SecH@1':>8}{'SecR@5':>8}{'SecMRR':>8}")
@@ -382,8 +431,11 @@ def print_failures(top1_misses, partial_coverage):
             rank_text = f"{rank}" + ("" if rank <= DEFAULT_K else " (outside top 5)")
         print(f"\n  {question['question_id']} [{question['category']}] {question['question']}")
         print(f"    Relevant sections:   {question['relevant_section_ids']}")
-        print(f"    Top-ranked section:  {top['section_id']} {top['title']} - {top['section_title']} "
-              f"(similarity {top['similarity']:.4f})")
+        if top is None:
+            print("    Top-ranked section:  (no results)")
+        else:
+            print(f"    Top-ranked section:  {top['section_id']} {top['title']} - {top['section_title']} "
+                  f"({top['score_type']} score {top['score']:.4f})")
         print(f"    First relevant rank: {rank_text}")
         print(f"    Diagnosis:           {miss['diagnosis']} ({miss['relation']})")
 
@@ -402,32 +454,126 @@ def print_failures(top1_misses, partial_coverage):
               f"{question['question']}")
 
 
+def compare_question(question, rows_by_method):
+    """Per-question cross-method view: rank of every relevant section under each method."""
+    ranks = {
+        section_id: {method: section_rank(row["ranking"], section_id) for method, row in rows_by_method.items()}
+        for section_id in question["relevant_section_ids"]
+    }
+    return {"question": question, "section_ranks": ranks,
+            "scores": {method: {name: row[name] for name in METRIC_NAMES} for method, row in rows_by_method.items()}}
+
+
+def hybrid_verdict(dense_scores, hybrid_scores):
+    """'helped' / 'hurt' / 'mixed' / 'no change', judged on Section Hit@1, Recall@5 and MRR@5 versus dense."""
+    keys = ("section_hit@1", "section_recall@5", "section_mrr@5")
+    better = any(hybrid_scores[k] > dense_scores[k] + 1e-12 for k in keys)
+    worse = any(hybrid_scores[k] < dense_scores[k] - 1e-12 for k in keys)
+    if better and worse:
+        return "mixed"
+    return "helped" if better else "hurt" if worse else "no change"
+
+
+def print_comparison(results, split, timings):
+    methods = list(results)
+    print("\nRAGForge — Retrieval Method Comparison")
+    print(f"Split: {split}")
+    print(f"Questions: {next(iter(results.values()))[0]['overall']['count']}")
+    print(f"\n{'Metric':<24}" + "".join(f"{METHOD_NAMES[m]:>14}" for m in methods))
+    for key, label in METRIC_LABELS + (("document_mrr@5", "Document MRR@5 (M1)"),):
+        print(f"{label:<24}" + "".join(f"{results[m][0]['overall'][key]:>14.3f}" for m in methods))
+    for key, label in (("mean_ms", "Query latency mean ms"), ("median_ms", "Query latency median ms")):
+        print(f"{label:<24}" + "".join(f"{results[m][1][key]:>14.2f}" for m in methods))
+    built = ", ".join(f"{name.replace('_', ' ')} {seconds:.2f} s" for name, seconds in timings.items())
+    print(f"\nOne-time setup (not in query latency): {built}")
+
+    for key, label in (("section_hit@1", "Section Hit@1"), ("section_mrr@5", "Section MRR@5")):
+        print(f"\n{label} by category")
+        print(f"{'Category':<30}{'N':>3}" + "".join(f"{METHOD_NAMES[m]:>14}" for m in methods))
+        for category, scores in results[methods[0]][0]["by_category"].items():
+            flag = "  (n<5)" if scores["count"] < SMALL_SAMPLE else ""
+            values = "".join(f"{results[m][0]['by_category'][category][key]:>14.3f}" for m in methods)
+            print(f"{category:<30}{scores['count']:>3}{values}{flag}")
+
+
+def print_rank_table(results):
+    """Development diagnostics: questions where any method misses rank 1 or a required section in the top 5."""
+    methods = list(results)
+    rows_by_question = {}
+    for method in methods:
+        for row in results[method][0]["per_question"]:
+            rows_by_question.setdefault(row["question"]["question_id"], {})[method] = row
+
+    print("\nSection ranks across methods (development only; '-' = not retrieved at any depth)")
+    print("Shown when any method misses Section Hit@1 or Section Recall@5. Ranks are chunk ranks in the full ranking.")
+    verdicts = {}
+    for question_id, rows in rows_by_question.items():
+        if all(row["section_hit@1"] == 1.0 and row["section_recall@5"] == 1.0 for row in rows.values()):
+            continue
+        view = compare_question(rows[methods[0]]["question"], rows)
+        question = view["question"]
+        print(f"\n  {question_id} [{question['category']}] {question['question']}")
+        print(f"    {'section':<12}" + "".join(f"{METHOD_NAMES[m]:>14}" for m in methods))
+        for section_id, ranks in view["section_ranks"].items():
+            cells = "".join(f"{'-' if ranks[m] is None else ranks[m]:>14}" for m in methods)
+            print(f"    {section_id:<12}{cells}")
+        for key, label in (("section_hit@1", "Hit@1"), ("section_recall@5", "Recall@5"), ("section_mrr@5", "MRR@5")):
+            print(f"    {label:<12}" + "".join(f"{view['scores'][m][key]:>14.2f}" for m in methods))
+        if "dense" in methods and "hybrid" in methods:
+            verdict = hybrid_verdict(view["scores"]["dense"], view["scores"]["hybrid"])
+            verdicts[verdict] = verdicts.get(verdict, 0) + 1
+            print(f"    Hybrid vs dense: {verdict}")
+    if verdicts:
+        print("\n  Hybrid vs dense over the questions listed: "
+              + ", ".join(f"{name} {count}" for name, count in sorted(verdicts.items())))
+
+
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="RAGForge dense retrieval benchmark.")
+    from src.retrieve import METHODS, build_search_index
+
+    parser = argparse.ArgumentParser(description="RAGForge retrieval benchmark.")
     parser.add_argument("--split", choices=SPLITS + ("all",), default="development",
                         help="question split to evaluate (default: development)")
+    parser.add_argument("--method", choices=METHODS, default="dense",
+                        help="retrieval method to evaluate (default: dense)")
+    parser.add_argument("--compare", action="store_true", help="evaluate dense, BM25 and hybrid side by side")
     parser.add_argument("--failures", action="store_true",
-                        help="print per-question results and failure analysis (development split only)")
+                        help="per-question diagnostics (development split only); with --compare, "
+                             "section ranks across methods")
     args = parser.parse_args(argv)
     if args.failures and args.split != "development":
         parser.error("--failures is only available for the development split; the test split stays held out.")
 
-    from src.embeddings import load_model
     from src.ingest import load_documents
-    from src.retrieve import build_index
 
     documents = load_documents()
     questions = filter_split(load_evaluation_questions(documents=documents), args.split)
+    methods = METHODS if args.compare else (args.method,)
+    index = build_search_index(methods)
+    details = [f"Loaded {len(documents)} documents", f"{len(index['chunks'])} chunks"]
+    if index["chunk_embeddings"] is not None:
+        details.append(f"embedding dimension {index['chunk_embeddings'].shape[1]}")
+    if index["bm25"] is not None:
+        details.append(f"BM25 vocabulary {len(index['bm25']['idf'])} terms")
+    print(", ".join(details) + ".")
 
-    model = load_model()
-    _, chunks, chunk_embeddings = build_index(model)
-    print(f"Loaded {len(documents)} documents, {len(chunks)} chunks, embedding dimension {chunk_embeddings.shape[1]}.")
+    results = {}
+    for method in methods:
+        rankings, latencies_ms = rank_questions(questions, index, method)
+        results[method] = (summarize(questions, rankings), latency_stats(latencies_ms))
 
-    summary = summarize(questions, rank_all_chunks(questions, model, chunks, chunk_embeddings))
-    print_summary(summary, args.split, show_per_question=args.failures)
-    if args.failures:
-        departments = {document["document_id"]: document["department"] for document in documents}
-        print_failures(*failure_analysis(summary, departments))
+    if args.compare:
+        print_comparison(results, args.split, index["timings"])
+        if args.failures:
+            print_rank_table(results)
+    else:
+        summary, latency = results[args.method]
+        print_summary(summary, args.split, show_per_question=args.failures, method=args.method, latency=latency)
+        built = ", ".join(f"{name.replace('_', ' ')} {seconds:.2f} s" for name, seconds in index["timings"].items())
+        print(f"One-time setup (not in query latency): {built}")
+        if args.failures:
+            departments = {document["document_id"]: document["department"] for document in documents}
+            print_failures(*failure_analysis(summary, departments))
 
     print("\nNote: small synthetic benchmark; treat scores as a development baseline, not a reliable estimate.")
     if args.split != "development":

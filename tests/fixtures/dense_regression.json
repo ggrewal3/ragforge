@@ -1,0 +1,157 @@
+{
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "n_chunks": 92,
+  "generated_from_commit": "324472c",
+  "queries": [
+    {
+      "question": "What is the deadline for returning an overseas order?",
+      "top5": [
+        {
+          "chunk_id": "REF-729.4#0",
+          "similarity": 0.636136
+        },
+        {
+          "chunk_id": "REF-729.1#0",
+          "similarity": 0.635832
+        },
+        {
+          "chunk_id": "REF-728.1#0",
+          "similarity": 0.540621
+        },
+        {
+          "chunk_id": "REF-729.3#0",
+          "similarity": 0.538509
+        },
+        {
+          "chunk_id": "SHP-732.3#0",
+          "similarity": 0.533747
+        }
+      ]
+    },
+    {
+      "question": "Can I use SMS codes for two-factor login?",
+      "top5": [
+        {
+          "chunk_id": "SEC-302.2#0",
+          "similarity": 0.519416
+        },
+        {
+          "chunk_id": "SEC-302.1#0",
+          "similarity": 0.450545
+        },
+        {
+          "chunk_id": "SEC-302.3#0",
+          "similarity": 0.412396
+        },
+        {
+          "chunk_id": "SEC-305.3#0",
+          "similarity": 0.349312
+        },
+        {
+          "chunk_id": "SEC-301.1#0",
+          "similarity": 0.281959
+        }
+      ]
+    },
+    {
+      "question": "What does FIN-205.3 say?",
+      "top5": [
+        {
+          "chunk_id": "FIN-202.1#0",
+          "similarity": 0.368115
+        },
+        {
+          "chunk_id": "FIN-205.1#0",
+          "similarity": 0.352241
+        },
+        {
+          "chunk_id": "FIN-206.4#0",
+          "similarity": 0.322667
+        },
+        {
+          "chunk_id": "FIN-206.2#0",
+          "similarity": 0.310462
+        },
+        {
+          "chunk_id": "SEC-303.2#1",
+          "similarity": 0.301462
+        }
+      ]
+    },
+    {
+      "question": "How many vacation days do I get per year?",
+      "top5": [
+        {
+          "chunk_id": "HR-101.1#0",
+          "similarity": 0.522874
+        },
+        {
+          "chunk_id": "HR-101.4#0",
+          "similarity": 0.408084
+        },
+        {
+          "chunk_id": "HR-101.3#0",
+          "similarity": 0.40433
+        },
+        {
+          "chunk_id": "HR-101.2#0",
+          "similarity": 0.381619
+        },
+        {
+          "chunk_id": "HR-105.1#0",
+          "similarity": 0.320117
+        }
+      ]
+    },
+    {
+      "question": "Who must approve moving $50,000 of budget between two different cost centers?",
+      "top5": [
+        {
+          "chunk_id": "FIN-205.3#0",
+          "similarity": 0.675376
+        },
+        {
+          "chunk_id": "FIN-205.2#0",
+          "similarity": 0.52387
+        },
+        {
+          "chunk_id": "FIN-205.4#0",
+          "similarity": 0.482787
+        },
+        {
+          "chunk_id": "FIN-202.3#0",
+          "similarity": 0.405306
+        },
+        {
+          "chunk_id": "FIN-205.1#0",
+          "similarity": 0.384035
+        }
+      ]
+    },
+    {
+      "question": "Someone took my work laptop out of my car. What do I need to do?",
+      "top5": [
+        {
+          "chunk_id": "SEC-305.4#0",
+          "similarity": 0.441151
+        },
+        {
+          "chunk_id": "SEC-305.1#0",
+          "similarity": 0.35466
+        },
+        {
+          "chunk_id": "HR-102.4#0",
+          "similarity": 0.324656
+        },
+        {
+          "chunk_id": "SEC-304.2#0",
+          "similarity": 0.308634
+        },
+        {
+          "chunk_id": "SEC-305.3#0",
+          "similarity": 0.304119
+        }
+      ]
+    }
+  ]
+}
