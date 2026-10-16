@@ -1,0 +1,28 @@
+{
+  "document_id": "FIN-203",
+  "title": "Invoice Payment Policy",
+  "department": "Finance",
+  "effective_date": "2026-01-01",
+  "sections": [
+    {
+      "section_id": "FIN-203.1",
+      "section_title": "Invoice Requirements",
+      "text": "All supplier invoices must be sent to the Accounts Payable mailbox and must include the supplier's legal name, invoice number, invoice date, a valid purchase order number, itemized amounts, and applicable tax. Invoices without a valid purchase order number are returned to the supplier within 5 business days and are not entered for payment. Invoices must be issued in the currency stated on the purchase order."
+    },
+    {
+      "section_id": "FIN-203.2",
+      "section_title": "Three-Way Match",
+      "text": "Before an invoice is approved for payment, Accounts Payable performs a three-way match between the purchase order, the goods receipt or service confirmation, and the invoice. A variance of up to 5 percent or $500, whichever is lower, may be approved by Accounts Payable. Larger variances are sent to the budget owner, who must resolve them within 10 business days. The requester must confirm receipt of goods or services in the procurement system within 5 business days of delivery."
+    },
+    {
+      "section_id": "FIN-203.3",
+      "section_title": "Payment Terms",
+      "text": "The standard payment terms are net 30 days from the date a valid invoice is received. Small suppliers registered under the company's small business program are paid on net 15 terms. Early payment discounts offered by a supplier are taken when the discount is at least 2 percent and the invoice has passed the three-way match. Disputed invoices are placed on hold, and the payment term restarts when a corrected invoice is received."
+    },
+    {
+      "section_id": "FIN-203.4",
+      "section_title": "Duplicate and Late Invoices",
+      "text": "Accounts Payable checks every invoice against previously paid invoices using the supplier, invoice number, and amount. Suspected duplicate invoices are blocked until the supplier confirms in writing that the invoice is not a duplicate. Invoices received more than 12 months after the goods or services were delivered require Finance Director approval before payment."
+    }
+  ]
+}

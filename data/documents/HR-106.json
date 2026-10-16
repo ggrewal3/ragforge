@@ -1,0 +1,23 @@
+{
+  "document_id": "HR-106",
+  "title": "Employee Expense Reimbursement Policy",
+  "department": "Human Resources",
+  "effective_date": "2026-01-01",
+  "sections": [
+    {
+      "section_id": "HR-106.1",
+      "section_title": "Scope",
+      "text": "This policy covers out-of-pocket business expenses paid personally by employees that are not travel-related, such as client meals at the employee's office location, home office stipend purchases, learning allowance purchases, and business mileage. Travel expenses, including flights, hotels, and per diem meals while traveling, are covered by the Travel Expense Policy, FIN-201. Expenses charged to a corporate card are reconciled under FIN-204 and are not reimbursed under this policy."
+    },
+    {
+      "section_id": "HR-106.2",
+      "section_title": "Submitting Claims",
+      "text": "Expense claims must be submitted in the expense system within 30 days of the date the expense was incurred. An itemized receipt is required for every expense above $25. Claims submitted more than 30 days late are rejected unless the employee's director approves a late-submission exception. Expenses above $500 for a single item require pre-approval from the employee's manager before the purchase is made. Business mileage in a personal vehicle is reimbursed at $0.65 per mile and must include the start point, destination, and business purpose."
+    },
+    {
+      "section_id": "HR-106.3",
+      "section_title": "Approval and Payment",
+      "text": "Managers must approve or reject submitted claims within 5 business days. Approved claims are reimbursed with the next regular payroll run after approval, provided approval is completed at least 3 business days before the payroll cutoff. Claims that are rejected may be corrected and resubmitted once. Alcohol, personal entertainment, traffic fines, and gifts to colleagues are never reimbursable."
+    }
+  ]
+}

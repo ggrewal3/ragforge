@@ -1,0 +1,28 @@
+{
+  "document_id": "SUB-730",
+  "title": "Subscription Cancellation Policy",
+  "department": "Customer Policies",
+  "effective_date": "2025-10-01",
+  "sections": [
+    {
+      "section_id": "SUB-730.1",
+      "section_title": "Monthly Subscriptions",
+      "text": "Customers on monthly subscription plans may cancel at any time from the account settings page. Cancellation takes effect at the end of the current billing period, and the customer keeps access until then. Partial-month refunds are not provided for monthly plans. Monthly plans renew automatically on the same calendar day each month until cancelled."
+    },
+    {
+      "section_id": "SUB-730.2",
+      "section_title": "Annual Subscriptions",
+      "text": "Customers on annual plans may cancel within 14 days of the initial purchase or of an annual renewal and receive a full refund. After that 14-day cooling-off period, annual plans are non-refundable, but the customer keeps access until the end of the paid term and the plan does not renew. The company sends a renewal reminder email at least 30 days before every annual renewal date."
+    },
+    {
+      "section_id": "SUB-730.3",
+      "section_title": "Data After Cancellation",
+      "text": "After a subscription ends, the customer account becomes read-only and customer data is retained for 60 days so that the customer can export it or reactivate the subscription. After 60 days, the data is permanently deleted and cannot be restored. Customers may request immediate deletion at any time through customer support."
+    },
+    {
+      "section_id": "SUB-730.4",
+      "section_title": "Downgrades and Billing Errors",
+      "text": "Customers may downgrade to a lower plan at any time, and the change takes effect at the next renewal date. Duplicate charges, or charges made after a confirmed cancellation, are refunded in full within 5 business days of being reported. Refund requests for physical products are handled under REF-728 or REF-729 rather than this policy."
+    }
+  ]
+}

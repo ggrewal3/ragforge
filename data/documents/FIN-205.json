@@ -1,0 +1,28 @@
+{
+  "document_id": "FIN-205",
+  "title": "Budget Approval Policy",
+  "department": "Finance",
+  "effective_date": "2025-08-01",
+  "sections": [
+    {
+      "section_id": "FIN-205.1",
+      "section_title": "Annual Budget Cycle",
+      "text": "Each department submits its proposed operating and capital budgets for the next fiscal year by September 30. Finance consolidates the proposals and presents the company budget to the executive team in October. The board of directors approves the final annual budget by December 15. Departments receive their approved budget allocations in the planning system before the fiscal year begins on January 1."
+    },
+    {
+      "section_id": "FIN-205.2",
+      "section_title": "Budget Owners",
+      "text": "Each cost center has a single named budget owner, usually the department director. The budget owner is accountable for spending within the cost center and for confirming that requisitions raised under FIN-202 are funded. Budget owners review monthly variance reports from Finance and must explain any variance greater than 10 percent of the monthly budget within 10 business days of receiving the report."
+    },
+    {
+      "section_id": "FIN-205.3",
+      "section_title": "Reallocations and Unbudgeted Spend",
+      "text": "Budget owners may reallocate up to $10,000 between expense lines within their own cost center without further approval. Reallocations above $10,000 and up to $100,000, or any reallocation between cost centers, require approval from the Finance Director. Reallocations or unbudgeted spending above $100,000 require approval from the Chief Financial Officer. Any single unbudgeted commitment above $250,000 must also be approved by the board of directors."
+    },
+    {
+      "section_id": "FIN-205.4",
+      "section_title": "Capital Expenditure and Year-End",
+      "text": "Capital expenditure requests above $20,000 require a business case showing expected costs, benefits, and payback period. Unspent operating budget does not carry over to the next fiscal year. Purchase orders must be raised by November 30 to be charged against the current year's budget, unless the Finance Director grants an exception."
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "document_id": "FIN-201",
+  "title": "Travel Expense Policy",
+  "department": "Finance",
+  "effective_date": "2026-01-01",
+  "sections": [
+    {
+      "section_id": "FIN-201.1",
+      "section_title": "Booking Travel",
+      "text": "All business travel must be booked through the company travel portal at least 14 days before departure where possible. Trips booked with less than 14 days of notice require a short justification in the portal. International travel requires approval from a department director before booking. Travel to countries rated high-risk by the Security team also requires a travel security briefing before departure."
+    },
+    {
+      "section_id": "FIN-201.2",
+      "section_title": "Airfare and Accommodation",
+      "text": "Employees fly economy class for flights with a scheduled duration under 6 hours. Business class is permitted for flights of 6 hours or longer with Vice President approval. Hotel stays are capped at $250 per night in standard locations and $350 per night in designated high-cost cities. Bookings above the nightly cap require director approval in the travel portal before the stay. Loyalty points earned during business travel may be kept by the employee but must not influence the choice of airline or hotel."
+    },
+    {
+      "section_id": "FIN-201.3",
+      "section_title": "Meals and Per Diem",
+      "text": "While traveling overnight, employees receive a meal per diem of $75 per day for domestic travel and $100 per day for international travel. Per diem replaces itemized meal receipts, so meal receipts are not required for per diem claims. On the first and last days of travel, the per diem is reduced to 75 percent. Meals provided by a conference or client are deducted from the per diem."
+    },
+    {
+      "section_id": "FIN-201.4",
+      "section_title": "Claiming Travel Expenses",
+      "text": "Travel expenses not charged to a corporate card must be claimed within 30 days of returning from the trip. Receipts are required for airfare, accommodation, ground transportation, and any other item above $25. Travel expense claims are approved by the traveler's manager, and claims over $5,000 per trip also require review by Finance. Approved travel claims are reimbursed with the next payroll run. Expenses charged to a corporate card while traveling are reconciled under FIN-204."
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "document_id": "HR-104",
+  "title": "Parental Leave Policy",
+  "department": "Human Resources",
+  "effective_date": "2026-01-01",
+  "sections": [
+    {
+      "section_id": "HR-104.1",
+      "section_title": "Eligibility",
+      "text": "Employees become eligible for paid parental leave after completing 6 months of continuous service. Eligibility applies equally to birth parents, non-birth parents, adoptive parents, and parents through surrogacy. Employees with less than 6 months of service are entitled to unpaid parental leave as required by local law and may use accrued annual leave under HR-101."
+    },
+    {
+      "section_id": "HR-104.2",
+      "section_title": "Leave Entitlement",
+      "text": "Birth parents receive 16 weeks of parental leave at full base pay. Non-birth parents and adoptive parents receive 12 weeks of parental leave at full base pay. Parental leave must be taken within 12 months of the birth or adoption placement and may be split into a maximum of 2 blocks of at least 2 weeks each. Multiple births or adoptions at the same time do not increase the entitlement. Parental leave does not reduce the employee's annual leave accrual, which continues during the leave period."
+    },
+    {
+      "section_id": "HR-104.3",
+      "section_title": "Notice and Planning",
+      "text": "Employees must notify their manager and the People team at least 8 weeks before the intended start of parental leave, or as soon as reasonably possible for adoptions with short notice. A written leave plan covering handover and coverage is agreed with the manager at least 4 weeks before leave begins. During leave, employees may work up to 10 optional keep-in-touch days at full pay without ending their leave."
+    },
+    {
+      "section_id": "HR-104.4",
+      "section_title": "Return to Work",
+      "text": "Returning parents may use a phased return for up to 4 weeks, working 60 percent of their normal schedule while receiving full base pay. Employees return to the same role or to an equivalent role with the same pay and seniority. Requests for flexible working after parental leave are reviewed under the Remote Work Policy, HR-102, and must receive a decision within 20 business days."
+    }
+  ]
+}

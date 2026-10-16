@@ -1,0 +1,28 @@
+{
+  "document_id": "ESC-733",
+  "title": "Customer Support Escalation Policy",
+  "department": "Customer Policies",
+  "effective_date": "2026-01-01",
+  "sections": [
+    {
+      "section_id": "ESC-733.1",
+      "section_title": "Support Tiers",
+      "text": "Tier 1 support agents handle all incoming customer contacts and resolve common questions about orders, accounts, refunds, and shipping. Tier 2 specialists handle complex technical issues, billing disputes, and cases that Tier 1 cannot resolve. Tier 3 consists of product engineering teams and handles confirmed product defects and outages. Enterprise customers are also assigned a named account manager who can coordinate escalations."
+    },
+    {
+      "section_id": "ESC-733.2",
+      "section_title": "Priority Levels and Response Targets",
+      "text": "Every case is assigned a priority. P1 cases involve a complete service outage or a security issue affecting the customer and have a first-response target of 1 hour, 24 hours a day. P2 cases involve major functionality loss with no workaround and have a first-response target of 4 business hours. P3 cases involve partial loss of functionality with a workaround and have a target of 1 business day. P4 cases are general questions and have a target of 3 business days."
+    },
+    {
+      "section_id": "ESC-733.3",
+      "section_title": "When to Escalate",
+      "text": "A Tier 1 agent must escalate a case to Tier 2 when it remains unresolved after 2 customer contacts or 48 hours, whichever comes first. P1 cases are escalated to Tier 2 and the on-call support manager immediately. Customers may ask to speak with a supervisor at any time, and the request must be fulfilled within 1 business day. Cases involving a suspected data exposure are escalated to the Security Operations Center under SEC-304."
+    },
+    {
+      "section_id": "ESC-733.4",
+      "section_title": "Formal Complaints",
+      "text": "If a customer remains dissatisfied after escalation, they may submit a formal complaint to the Customer Advocacy Office. The office acknowledges complaints within 2 business days and issues a final written response within 10 business days. Compensation offered during escalation, such as service credits, is limited to 25 percent of the customer's monthly fee unless approved by the Head of Customer Support."
+    }
+  ]
+}

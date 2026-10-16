@@ -1,0 +1,23 @@
+{
+  "document_id": "SEC-302",
+  "title": "Multi-Factor Authentication Policy",
+  "department": "Security",
+  "effective_date": "2025-06-01",
+  "sections": [
+    {
+      "section_id": "SEC-302.1",
+      "section_title": "Where MFA Is Required",
+      "text": "Multi-factor authentication (MFA) is required for email, the company VPN, single sign-on, cloud administration consoles, the finance system, and any system holding Confidential or Restricted data as defined in SEC-303. MFA is also required for all remote access by third parties under SEC-306. Systems that cannot support MFA require a documented exception approved by the Chief Information Security Officer (CISO), reviewed every 6 months."
+    },
+    {
+      "section_id": "SEC-302.2",
+      "section_title": "Approved Methods",
+      "text": "The approved MFA methods are FIDO2 hardware security keys and the company authenticator app with number matching. FIDO2 security keys are mandatory for administrators and privileged accounts. SMS text message codes and voice calls are not approved methods. When an employee has lost access to all approved methods, the Service Desk may issue a temporary one-time code valid for 72 hours after verifying the employee's identity by video call with their manager present."
+    },
+    {
+      "section_id": "SEC-302.3",
+      "section_title": "Lost Keys and Suspicious Prompts",
+      "text": "A lost or stolen security key, or a lost phone with the authenticator app, must be reported to the Service Desk within 1 hour of discovery so that the factor can be revoked. Employees must deny any MFA prompt they did not initiate and report it as a security incident under SEC-304, because repeated unexpected prompts can indicate an MFA fatigue attack. Employees must never read an MFA code aloud or share it with anyone, including people claiming to be from the Service Desk."
+    }
+  ]
+}

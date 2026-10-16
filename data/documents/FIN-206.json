@@ -1,0 +1,28 @@
+{
+  "document_id": "FIN-206",
+  "title": "Vendor Payment Policy",
+  "department": "Finance",
+  "effective_date": "2026-03-01",
+  "sections": [
+    {
+      "section_id": "FIN-206.1",
+      "section_title": "Vendor Onboarding",
+      "text": "A supplier must be set up as an approved vendor in the finance system before any payment can be made. Vendor setup requires a completed vendor form, tax registration details, bank account details on company letterhead, and sanctions screening. The Vendor Master Data team completes setup within 5 business days of receiving a complete form. Employees may not set up or change vendor records for suppliers they manage."
+    },
+    {
+      "section_id": "FIN-206.2",
+      "section_title": "Bank Detail Changes",
+      "text": "Requests to change a vendor's bank account details are treated as high-risk because they are a common fraud technique. Every change must be verified by a callback to a phone number already held in the vendor record, never a number provided in the change request. Changes take effect only after a second member of the Vendor Master Data team approves the verification. The first payment after a bank detail change is limited to $10,000 until the vendor confirms receipt. Suspicious change requests must be reported as a security incident under SEC-304."
+    },
+    {
+      "section_id": "FIN-206.3",
+      "section_title": "Payment Runs and Methods",
+      "text": "Vendor payments are released in scheduled payment runs every Tuesday and Thursday. Electronic bank transfer (ACH) is the standard payment method. Wire transfers are used only for international vendors or for urgent payments approved by the Finance Director. Every payment run above $25,000 in total, and any single wire transfer above $25,000, requires dual approval by two authorized Treasury signatories. Payments by check are issued only when a vendor cannot accept electronic payment."
+    },
+    {
+      "section_id": "FIN-206.4",
+      "section_title": "Urgent and Manual Payments",
+      "text": "Urgent off-cycle vendor payments require Finance Director approval and a written explanation of why the payment cannot wait for the next scheduled run. Manual payments outside the finance system are prohibited. Vendors that have had no payment activity for 18 months are deactivated and must be re-verified before receiving a new payment."
+    }
+  ]
+}

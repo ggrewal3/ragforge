@@ -1,0 +1,28 @@
+{
+  "document_id": "REF-728",
+  "title": "Domestic Refund Policy",
+  "department": "Customer Policies",
+  "effective_date": "2026-01-01",
+  "sections": [
+    {
+      "section_id": "REF-728.1",
+      "section_title": "Refund Eligibility",
+      "text": "Domestic customers, meaning customers whose delivery address is in the same country as the selling store, may request a refund within 30 days of delivery. Items must be returned in their original condition with all accessories and the order number. Final sale items, gift cards, downloadable software, and personalized products are non-refundable. Refund requests are submitted through the online returns center or by contacting customer support."
+    },
+    {
+      "section_id": "REF-728.2",
+      "section_title": "Return Shipping",
+      "text": "Domestic customers receive a free prepaid return label for every eligible return. Items may also be returned in person at any company store. Customers who choose their own carrier pay that carrier's cost and should use tracked shipping, because the company is not responsible for returns lost before they reach the returns warehouse."
+    },
+    {
+      "section_id": "REF-728.3",
+      "section_title": "Refund Processing",
+      "text": "Domestic refunds are issued to the original payment method within 5 business days after the returned item is received and inspected. Opened electronics are subject to a 15 percent restocking fee unless the item is defective. Customers may choose store credit instead of a refund and receive a 10 percent bonus on the store credit amount. Original shipping charges are refunded only when the return is caused by a defect or a fulfillment error."
+    },
+    {
+      "section_id": "REF-728.4",
+      "section_title": "Exceptions",
+      "text": "Items purchased between November 15 and December 31 may be returned until January 31 of the following year. Defective items reported after the 30-day refund window are handled as warranty claims under WAR-731 rather than as refunds. Customer support managers may approve a goodwill refund of up to $100 outside this policy once per customer per year."
+    }
+  ]
+}

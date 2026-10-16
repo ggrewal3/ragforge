@@ -1,0 +1,28 @@
+{
+  "document_id": "WAR-731",
+  "title": "Warranty Claims Policy",
+  "department": "Customer Policies",
+  "effective_date": "2025-12-01",
+  "sections": [
+    {
+      "section_id": "WAR-731.1",
+      "section_title": "Warranty Coverage",
+      "text": "Company-branded hardware products include a 2-year limited warranty from the date of delivery covering defects in materials and workmanship under normal use. Accessories such as cables, cases, and chargers include a 1-year limited warranty. The warranty applies to both domestic and international customers and is not transferable when a product is resold."
+    },
+    {
+      "section_id": "WAR-731.2",
+      "section_title": "Exclusions",
+      "text": "The warranty does not cover accidental damage, liquid damage, normal wear and tear, cosmetic damage that does not affect function, damage caused by unauthorized repairs or modifications, or batteries that retain at least 80 percent of their original capacity. Products with a removed or altered serial number are not eligible for warranty service."
+    },
+    {
+      "section_id": "WAR-731.3",
+      "section_title": "Filing a Claim",
+      "text": "Customers must file a warranty claim within 30 days of discovering a defect and within the warranty period. Claims require proof of purchase, the product serial number, and a description of the defect, and photos or video may be requested. The warranty team responds to new claims within 3 business days. The company pays shipping costs for approved warranty claims in both directions."
+    },
+    {
+      "section_id": "WAR-731.4",
+      "section_title": "Claim Outcomes",
+      "text": "For approved claims, the company decides whether to repair the product, replace it with the same or an equivalent model, or refund the purchase price when repair and replacement are not possible. Repaired or replaced products are covered for the remainder of the original warranty period or 90 days, whichever is longer. Refunds issued under a warranty claim are not subject to restocking fees."
+    }
+  ]
+}

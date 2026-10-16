@@ -1,0 +1,28 @@
+{
+  "document_id": "REF-729",
+  "title": "International Refund Policy",
+  "department": "Customer Policies",
+  "effective_date": "2026-01-01",
+  "sections": [
+    {
+      "section_id": "REF-729.1",
+      "section_title": "Refund Eligibility",
+      "text": "International customers, meaning customers whose delivery address is outside the country of the selling store, may request a refund within 45 days of delivery. Items must be returned in their original condition with all accessories and the order number. Final sale items, gift cards, downloadable software, and personalized products are non-refundable. Refund requests must be submitted through the online returns center, and a return authorization number must be obtained before the item is shipped back."
+    },
+    {
+      "section_id": "REF-729.2",
+      "section_title": "Return Shipping and Customs",
+      "text": "International customers pay the cost of return shipping unless the item is defective or the wrong item was sent, in which case a prepaid international return label is provided. Returns must be sent with tracked shipping and marked as a returned good on the customs declaration. Customs duties, import taxes, and brokerage fees paid on the original delivery are non-refundable unless the item is defective or the order was sent in error."
+    },
+    {
+      "section_id": "REF-729.3",
+      "section_title": "Refund Processing and Currency",
+      "text": "International refunds are issued to the original payment method within 10 to 15 business days after the returned item is received and inspected. Refunds are made in the currency of the original payment, and the company does not compensate for exchange rate differences or bank conversion fees. Opened electronics are subject to a 15 percent restocking fee unless the item is defective. Store credit is not available for international orders."
+    },
+    {
+      "section_id": "REF-729.4",
+      "section_title": "Exceptions",
+      "text": "International orders above $1,000 must be inspected by the returns quality team before a refund is approved, which may add up to 5 business days. Defective items reported after the 45-day refund window are handled as warranty claims under WAR-731. Refunds cannot be issued to a different country or currency than the original order."
+    }
+  ]
+}

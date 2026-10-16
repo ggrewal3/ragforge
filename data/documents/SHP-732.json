@@ -1,0 +1,28 @@
+{
+  "document_id": "SHP-732",
+  "title": "Shipping and Delivery Policy",
+  "department": "Customer Policies",
+  "effective_date": "2026-02-15",
+  "sections": [
+    {
+      "section_id": "SHP-732.1",
+      "section_title": "Processing and Dispatch",
+      "text": "Orders placed before 2 PM local warehouse time on a business day are dispatched the same day. Orders placed after 2 PM, or on weekends and public holidays, are dispatched on the next business day. Customers receive a tracking number by email when the order is dispatched. Pre-order items are dispatched on the release date shown on the product page."
+    },
+    {
+      "section_id": "SHP-732.2",
+      "section_title": "Delivery Options and Costs",
+      "text": "Domestic standard delivery takes 3 to 5 business days and is free for orders over $75, while orders of $75 or less pay a $6.95 standard delivery fee. Domestic express delivery takes 1 to 2 business days and costs $19.95. International delivery takes 7 to 21 business days and is charged by destination at checkout. International customers are responsible for customs duties and import taxes unless the order was placed with the duties-included option."
+    },
+    {
+      "section_id": "SHP-732.3",
+      "section_title": "Lost and Damaged Packages",
+      "text": "A domestic package may be reported lost if it has not arrived 10 business days after the estimated delivery date. An international package may be reported lost 30 days after the estimated delivery date. Packages that arrive damaged must be reported within 48 hours of delivery with photos of the package and the product. Confirmed lost or damaged orders are replaced at no cost or refunded, at the customer's choice."
+    },
+    {
+      "section_id": "SHP-732.4",
+      "section_title": "Address Changes and Failed Deliveries",
+      "text": "Delivery addresses can be changed only before the order is dispatched. When a delivery fails 3 times, the carrier returns the package to the warehouse and the order is refunded minus the original shipping cost. The company cannot ship orders containing lithium batteries to post office boxes."
+    }
+  ]
+}

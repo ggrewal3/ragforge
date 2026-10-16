@@ -1,0 +1,28 @@
+{
+  "document_id": "FIN-204",
+  "title": "Corporate Credit Card Policy",
+  "department": "Finance",
+  "effective_date": "2025-11-01",
+  "sections": [
+    {
+      "section_id": "FIN-204.1",
+      "section_title": "Eligibility and Limits",
+      "text": "Corporate credit cards are issued to employees who travel or purchase regularly on behalf of the company, with approval from their director. The standard card has a monthly limit of $5,000 and a single-transaction limit of $2,500. Temporary limit increases of up to 30 days may be approved by the Finance Director. Cards are issued in the employee's name and must not be shared or used by anyone else."
+    },
+    {
+      "section_id": "FIN-204.2",
+      "section_title": "Permitted and Prohibited Use",
+      "text": "The corporate card may be used for business travel, approved learning purchases, and low-value business purchases below the $1,000 purchase requisition threshold in FIN-202. Personal purchases are prohibited, even if the employee intends to repay them. Cash withdrawals are prohibited except during international travel and are limited to $200 per trip. Splitting a purchase across several transactions to stay under the single-transaction limit is a policy violation."
+    },
+    {
+      "section_id": "FIN-204.3",
+      "section_title": "Receipts and Monthly Reconciliation",
+      "text": "Cardholders must upload an itemized receipt for every card transaction within 10 business days of the transaction date. Each cardholder must complete the monthly reconciliation in the expense system by the 5th business day of the following month, and the cardholder's manager must approve it within 3 further business days. Missing receipts must be replaced with a signed missing receipt declaration, which is permitted at most 3 times per year."
+    },
+    {
+      "section_id": "FIN-204.4",
+      "section_title": "Lost Cards and Violations",
+      "text": "Lost or stolen corporate cards must be reported to the card issuer and to Finance immediately, and no later than 24 hours after the loss is discovered. Cardholders whose reconciliation is overdue by more than 30 days have their card suspended until the reconciliation is complete. Repeated personal use or a second suspension within 12 months results in permanent card cancellation and may lead to disciplinary action."
+    }
+  ]
+}

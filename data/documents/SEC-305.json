@@ -1,0 +1,28 @@
+{
+  "document_id": "SEC-305",
+  "title": "Device Security Policy",
+  "department": "Security",
+  "effective_date": "2025-09-01",
+  "sections": [
+    {
+      "section_id": "SEC-305.1",
+      "section_title": "Company Devices",
+      "text": "Company laptops and phones must be enrolled in the company device management system before use. Full-disk encryption, endpoint protection, and the host firewall must remain enabled at all times. Screens must lock automatically after 5 minutes of inactivity, and employees must lock their screen whenever they leave the device unattended. Only software from the company software catalog may be installed without additional approval."
+    },
+    {
+      "section_id": "SEC-305.2",
+      "section_title": "Patching and Updates",
+      "text": "Operating system and application security updates must be installed within 14 days of release. Updates rated critical by the Security team must be installed within 72 hours. Devices that are more than 30 days behind on security updates are blocked from accessing company systems until they are updated. Devices running an operating system version that is no longer supported by its vendor must be replaced."
+    },
+    {
+      "section_id": "SEC-305.3",
+      "section_title": "Personal Devices",
+      "text": "Personal phones and tablets may access company email and chat only through the managed work app, which separates company data from personal data. Personal devices must have a screen lock and a supported operating system. Confidential and Restricted information must not be downloaded to personal devices. Personal laptops and computers may not be used to access company systems."
+    },
+    {
+      "section_id": "SEC-305.4",
+      "section_title": "Lost or Stolen Devices and Device Return",
+      "text": "A lost or stolen company device, or a personal device with the managed work app, must be reported as a security incident under SEC-304 within 1 hour of discovery so that the device can be locked and remotely wiped. Employees must not leave devices unattended in vehicles or in checked luggage. When employment ends, all company devices must be returned within 5 business days, and devices are securely wiped before being reissued."
+    }
+  ]
+}

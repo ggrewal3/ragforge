@@ -1,0 +1,23 @@
+{
+  "document_id": "SEC-306",
+  "title": "Third-Party Access Policy",
+  "department": "Security",
+  "effective_date": "2025-11-15",
+  "sections": [
+    {
+      "section_id": "SEC-306.1",
+      "section_title": "Requesting Access",
+      "text": "Third parties, including contractors, consultants, and vendors, may receive access to company systems only when sponsored by a named employee who is responsible for their activity. Before access is granted, the third party must sign a non-disclosure agreement and the vendor must complete a security assessment. Vendors that will process Restricted data must also provide an independent security certification report and receive approval from the CISO."
+    },
+    {
+      "section_id": "SEC-306.2",
+      "section_title": "Access Rules",
+      "text": "Third-party accounts are individual and named, and shared accounts are prohibited. All third-party access requires multi-factor authentication under SEC-302. Access is limited to the systems and data needed for the contracted work and is granted for a maximum of 90 days, after which the sponsor must request renewal. Remote access to production systems is permitted only through the company bastion host, and all such sessions are recorded."
+    },
+    {
+      "section_id": "SEC-306.3",
+      "section_title": "Reviews and Removal",
+      "text": "Sponsors review the access of their third parties every quarter and confirm that it is still required. Access must be removed within 24 hours of a contract ending or when the third party no longer needs it. Accounts with no login activity for 30 days are disabled automatically. The Security team may suspend third-party access immediately when there is a suspected security incident."
+    }
+  ]
+}

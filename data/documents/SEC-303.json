@@ -1,0 +1,23 @@
+{
+  "document_id": "SEC-303",
+  "title": "Data Classification Policy",
+  "department": "Security",
+  "effective_date": "2025-04-01",
+  "sections": [
+    {
+      "section_id": "SEC-303.1",
+      "section_title": "Classification Levels",
+      "text": "All company information is assigned one of four classification levels. Public information is approved for release to anyone, such as published marketing material. Internal information is for employees and approved contractors, such as internal announcements and team procedures. Confidential information could harm the company or its customers if disclosed, such as contracts, pricing, and employee performance records. Restricted information would cause severe harm if disclosed, such as customer payment card data, authentication credentials, encryption keys, and government identification numbers."
+    },
+    {
+      "section_id": "SEC-303.2",
+      "section_title": "Handling Requirements",
+      "text": "Internal information may be shared with employees and with third parties covered by a signed non-disclosure agreement. Confidential information must be shared only with people who need it for their work, must be encrypted when sent outside the company, and must be stored in approved company systems. Restricted information must be encrypted at rest and in transit, may be accessed only by named individuals approved by the data owner, and must never be stored on personal devices, removable media, or personal cloud storage. Restricted information may be shared externally only with approval from the Chief Information Security Officer. Printing Restricted information is prohibited, and printed Confidential information must be collected from the printer immediately and disposed of in secure shredding bins. Screenshots of Restricted systems must not be pasted into chat tools or support tickets."
+    },
+    {
+      "section_id": "SEC-303.3",
+      "section_title": "Labeling, Retention, and Disposal",
+      "text": "Documents classified as Confidential or Restricted must be labeled with their classification in the header or file name. Data owners review the classification of their datasets every 12 months. Information is retained only for the period defined in the records retention schedule, after which it is securely deleted. Devices and storage media that held Confidential or Restricted data must be wiped using an approved method or physically destroyed, and a certificate of destruction must be kept for 3 years."
+    }
+  ]
+}

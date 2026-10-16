@@ -1,0 +1,176 @@
+[
+  {
+    "question_id": "Q001",
+    "question": "What is the three-way match for supplier invoices?",
+    "relevant_document_ids": ["FIN-203"],
+    "category": "exact_keyword"
+  },
+  {
+    "question_id": "Q002",
+    "question": "How many keep-in-touch days can be worked during parental leave?",
+    "relevant_document_ids": ["HR-104"],
+    "category": "exact_keyword"
+  },
+  {
+    "question_id": "Q003",
+    "question": "Which accounts must use FIDO2 hardware security keys?",
+    "relevant_document_ids": ["SEC-302"],
+    "category": "exact_keyword"
+  },
+  {
+    "question_id": "Q004",
+    "question": "How much is the one-time home office stipend?",
+    "relevant_document_ids": ["HR-102"],
+    "category": "exact_keyword"
+  },
+  {
+    "question_id": "Q005",
+    "question": "What is the hotel nightly cap in designated high-cost cities?",
+    "relevant_document_ids": ["FIN-201"],
+    "category": "exact_keyword"
+  },
+  {
+    "question_id": "Q006",
+    "question": "What is the first-response target for P1 cases?",
+    "relevant_document_ids": ["ESC-733"],
+    "category": "exact_keyword"
+  },
+  {
+    "question_id": "Q007",
+    "question": "How long is customer data retained after a subscription ends?",
+    "relevant_document_ids": ["SUB-730"],
+    "category": "exact_keyword"
+  },
+  {
+    "question_id": "Q008",
+    "question": "How long do overseas customers have to request a refund?",
+    "relevant_document_ids": ["REF-729"],
+    "category": "semantic_paraphrase"
+  },
+  {
+    "question_id": "Q009",
+    "question": "Am I allowed to do my job from another country for a couple of weeks?",
+    "relevant_document_ids": ["HR-102"],
+    "category": "semantic_paraphrase"
+  },
+  {
+    "question_id": "Q010",
+    "question": "Someone took my work laptop out of my car. What do I need to do?",
+    "relevant_document_ids": ["SEC-305", "SEC-304"],
+    "category": "semantic_paraphrase"
+  },
+  {
+    "question_id": "Q011",
+    "question": "How much money does the company give me each year to spend on courses and conferences?",
+    "relevant_document_ids": ["HR-105"],
+    "category": "semantic_paraphrase"
+  },
+  {
+    "question_id": "Q012",
+    "question": "I accidentally clicked a link in a suspicious email. Who should I tell, and how quickly?",
+    "relevant_document_ids": ["SEC-304"],
+    "category": "semantic_paraphrase"
+  },
+  {
+    "question_id": "Q013",
+    "question": "My order never showed up. When can I tell the company it has gone missing?",
+    "relevant_document_ids": ["SHP-732"],
+    "category": "semantic_paraphrase"
+  },
+  {
+    "question_id": "Q014",
+    "question": "How many vacation days do I get per year?",
+    "relevant_document_ids": ["HR-101"],
+    "category": "semantic_paraphrase"
+  },
+  {
+    "question_id": "Q015",
+    "question": "What does section SEC-301.4 require?",
+    "relevant_document_ids": ["SEC-301"],
+    "category": "exact_identifier"
+  },
+  {
+    "question_id": "Q016",
+    "question": "Summarize the rules in HR-103.3.",
+    "relevant_document_ids": ["HR-103"],
+    "category": "exact_identifier"
+  },
+  {
+    "question_id": "Q017",
+    "question": "Under REF-729.2, who pays for return shipping?",
+    "relevant_document_ids": ["REF-729"],
+    "category": "exact_identifier"
+  },
+  {
+    "question_id": "Q018",
+    "question": "What approval does FIN-202.2 require for a purchase above $50,000?",
+    "relevant_document_ids": ["FIN-202"],
+    "category": "exact_identifier"
+  },
+  {
+    "question_id": "Q019",
+    "question": "What does WAR-731 exclude?",
+    "relevant_document_ids": ["WAR-731"],
+    "category": "exact_identifier"
+  },
+  {
+    "question_id": "Q020",
+    "question": "What does FIN-205.3 say?",
+    "relevant_document_ids": ["FIN-205"],
+    "category": "exact_identifier"
+  },
+  {
+    "question_id": "Q021",
+    "question": "What are the rules in SEC-306.2?",
+    "relevant_document_ids": ["SEC-306"],
+    "category": "exact_identifier"
+  },
+  {
+    "question_id": "Q022",
+    "question": "How many days do domestic customers have to request a refund?",
+    "relevant_document_ids": ["REF-728"],
+    "category": "similar_policy_disambiguation"
+  },
+  {
+    "question_id": "Q023",
+    "question": "Are customs duties refunded when an international customer returns a non-defective item?",
+    "relevant_document_ids": ["REF-729"],
+    "category": "similar_policy_disambiguation"
+  },
+  {
+    "question_id": "Q024",
+    "question": "How many weeks of paid leave does an adoptive parent receive?",
+    "relevant_document_ids": ["HR-104"],
+    "category": "similar_policy_disambiguation"
+  },
+  {
+    "question_id": "Q025",
+    "question": "What is the single-transaction limit on a corporate credit card?",
+    "relevant_document_ids": ["FIN-204"],
+    "category": "similar_policy_disambiguation"
+  },
+  {
+    "question_id": "Q026",
+    "question": "What are the default payment terms for supplier invoices?",
+    "relevant_document_ids": ["FIN-203"],
+    "category": "similar_policy_disambiguation"
+  },
+  {
+    "question_id": "Q027",
+    "question": "How is a change to a vendor's bank account details verified?",
+    "relevant_document_ids": ["FIN-206"],
+    "category": "similar_policy_disambiguation"
+  },
+  {
+    "question_id": "Q028",
+    "question": "Within how many days must a claim for a non-travel out-of-pocket expense be submitted?",
+    "relevant_document_ids": ["HR-106"],
+    "category": "similar_policy_disambiguation"
+  },
+  {
+    "question_id": "Q029",
+    "question": "Who must approve moving $50,000 of budget between two different cost centers?",
+    "relevant_document_ids": ["FIN-205"],
+    "category": "similar_policy_disambiguation"
+  }
+]

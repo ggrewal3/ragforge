@@ -1,0 +1,28 @@
+{
+  "document_id": "SEC-304",
+  "title": "Security Incident Reporting Policy",
+  "department": "Security",
+  "effective_date": "2026-01-15",
+  "sections": [
+    {
+      "section_id": "SEC-304.1",
+      "section_title": "What to Report",
+      "text": "Employees must report any suspected security incident, including phishing emails that were clicked or answered, malware warnings, lost or stolen devices, unexpected MFA prompts, unauthorized access to data, and data sent to the wrong recipient. Employees should report suspected incidents even when they are unsure, because early reports reduce harm. Reporting a mistake in good faith will not lead to disciplinary action."
+    },
+    {
+      "section_id": "SEC-304.2",
+      "section_title": "How and When to Report",
+      "text": "Suspected incidents must be reported to the Security Operations Center within 1 hour of discovery, using the Report Phishing button in the email client, the security incident form on the intranet, or the 24-hour security hotline at extension 4400. Employees must not investigate the incident themselves, must not forward suspicious emails to colleagues, and must not power off an affected device unless the Security Operations Center instructs them to. Disconnecting the affected device from the network is permitted."
+    },
+    {
+      "section_id": "SEC-304.3",
+      "section_title": "Severity Levels and Response Times",
+      "text": "The Security Operations Center assigns every incident a severity level. SEV-1 incidents involve active compromise of Restricted data or critical systems and require a response within 15 minutes and immediate notification of the CISO. SEV-2 incidents involve a confirmed compromise with limited impact and require a response within 1 hour. SEV-3 incidents are suspected compromises requiring a response within 4 business hours. SEV-4 incidents are minor policy violations handled within 2 business days."
+    },
+    {
+      "section_id": "SEC-304.4",
+      "section_title": "Personal Data Breaches",
+      "text": "When an incident may involve personal data, the Security Operations Center notifies the Privacy Office within 4 hours. The Privacy Office decides whether regulators and affected individuals must be notified and makes any required regulator notification within 72 hours of the company becoming aware of the breach. Every SEV-1 and SEV-2 incident receives a written post-incident review within 10 business days of closure."
+    }
+  ]
+}

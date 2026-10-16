@@ -1,0 +1,28 @@
+{
+  "document_id": "HR-102",
+  "title": "Remote Work Policy",
+  "department": "Human Resources",
+  "effective_date": "2025-09-01",
+  "sections": [
+    {
+      "section_id": "HR-102.1",
+      "section_title": "Hybrid Work Eligibility",
+      "text": "Employees in roles designated as hybrid-eligible may work remotely up to 3 days per week. The remaining days are spent at an assigned company office on team anchor days set by each department. Roles that require on-site equipment, such as laboratory and warehouse positions, are not hybrid-eligible. New employees work on-site for their first 4 weeks to complete the onboarding activities described in HR-103."
+    },
+    {
+      "section_id": "HR-102.2",
+      "section_title": "Fully Remote Arrangements",
+      "text": "Fully remote arrangements require written approval from the employee's director and from the People team. Approval is reviewed every 12 months. Fully remote employees must live within the country where they are employed and must attend in-person team events at least twice per year. Travel for those events is booked and reimbursed under the Travel Expense Policy, FIN-201."
+    },
+    {
+      "section_id": "HR-102.3",
+      "section_title": "Working From Abroad",
+      "text": "Employees may work temporarily from another country for up to 20 working days in any rolling 12-month period. Requests must be submitted at least 30 days before departure and require approval from the manager, the People team, and the Security team. Working from a country under trade sanctions is never permitted. Employees working abroad must keep Restricted data off their devices as defined in SEC-303 and must connect only through the company VPN."
+    },
+    {
+      "section_id": "HR-102.4",
+      "section_title": "Home Office Equipment and Security",
+      "text": "Hybrid and fully remote employees receive a one-time home office stipend of $400 for furniture and ergonomic equipment, claimed through the Employee Expense Reimbursement Policy, HR-106, within 90 days of the remote arrangement starting. Company laptops remain the property of the company and must meet the Device Security Policy, SEC-305. Employees must work from a private space when discussing Confidential information and must not use public Wi-Fi without the VPN."
+    }
+  ]
+}

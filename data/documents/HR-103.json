@@ -1,0 +1,23 @@
+{
+  "document_id": "HR-103",
+  "title": "Employee Onboarding Policy",
+  "department": "Human Resources",
+  "effective_date": "2026-02-01",
+  "sections": [
+    {
+      "section_id": "HR-103.1",
+      "section_title": "Before the First Day",
+      "text": "The hiring manager submits an onboarding request at least 10 business days before the employee's start date. The request triggers laptop provisioning, account creation, and building access. Employees receive their welcome pack and first-week schedule 5 business days before starting. Right-to-work documents must be verified no later than the employee's third working day."
+    },
+    {
+      "section_id": "HR-103.2",
+      "section_title": "First Week",
+      "text": "On the first day, employees collect their laptop, enroll in multi-factor authentication under SEC-302, and set a password that meets SEC-301. Mandatory security awareness training and data protection training must be completed within 5 business days of the start date. Accounts belonging to employees who do not complete mandatory training within that period are restricted until training is completed. Each new employee is assigned an onboarding buddy from outside their direct reporting line."
+    },
+    {
+      "section_id": "HR-103.3",
+      "section_title": "Probation and Check-ins",
+      "text": "All new employees complete a 90-day probation period. Managers hold structured check-ins at 30, 60, and 90 days and record the outcomes in the HR portal. The probation period may be extended once by up to 60 days if performance objectives are not yet met. During probation, the notice period for either party is 2 weeks. Confirmation of successful probation is sent in writing within 5 business days after the 90-day review."
+    }
+  ]
+}

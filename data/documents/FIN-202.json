@@ -1,0 +1,28 @@
+{
+  "document_id": "FIN-202",
+  "title": "Procurement Approval Policy",
+  "department": "Finance",
+  "effective_date": "2025-10-01",
+  "sections": [
+    {
+      "section_id": "FIN-202.1",
+      "section_title": "Purpose and Scope",
+      "text": "This policy governs the purchase of goods and services from external suppliers, including software subscriptions, professional services, and equipment. All purchases above $1,000 must be raised as a purchase requisition in the procurement system before the supplier is engaged. A purchase order number is issued once the requisition is fully approved, and suppliers must quote that number on every invoice, as required by FIN-203."
+    },
+    {
+      "section_id": "FIN-202.2",
+      "section_title": "Approval Thresholds",
+      "text": "Purchases up to $5,000 require approval from the requester's manager. Purchases above $5,000 and up to $50,000 require approval from the department director and the Procurement team. Purchases above $50,000 require approval from the Chief Financial Officer in addition to the department director and the Procurement team. Purchases must not be split into smaller requisitions to avoid a higher approval threshold. Approvers confirm that the purchase fits within an approved budget under FIN-205."
+    },
+    {
+      "section_id": "FIN-202.3",
+      "section_title": "Competitive Quotes",
+      "text": "Purchases above $25,000 require at least 3 written quotes from different suppliers. Purchases above $100,000 require a formal competitive tender managed by the Procurement team. A single-source exception may be approved by the Chief Financial Officer when only one supplier can provide the goods or services, and the justification must be attached to the requisition."
+    },
+    {
+      "section_id": "FIN-202.4",
+      "section_title": "Contracts and Software Purchases",
+      "text": "Contracts with a term longer than 12 months or a total value above $50,000 must be reviewed by Legal before signature. Software and cloud services that will process Internal, Confidential, or Restricted data require a security assessment under the Third-Party Access Policy, SEC-306, before the purchase order is issued. Only employees with delegated signing authority may sign supplier contracts."
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "document_id": "SEC-301",
+  "title": "Password Policy",
+  "department": "Security",
+  "effective_date": "2025-06-01",
+  "sections": [
+    {
+      "section_id": "SEC-301.1",
+      "section_title": "Password Requirements",
+      "text": "All user account passwords must be at least 14 characters long. Passphrases made of several unrelated words are encouraged because they are long and easy to remember. Passwords must not contain the user's name, username, or the company name, and must not appear in the company's list of known breached passwords, which is checked automatically when a password is set. The last 12 passwords cannot be reused."
+    },
+    {
+      "section_id": "SEC-301.2",
+      "section_title": "Password Changes and Lockout",
+      "text": "Passwords for standard user accounts do not expire on a fixed schedule. A password must be changed immediately when there is any suspicion that it has been exposed, shared, or phished. Accounts are locked for 15 minutes after 10 consecutive failed login attempts. Users who are locked out repeatedly must contact the Service Desk, which verifies identity before unlocking the account."
+    },
+    {
+      "section_id": "SEC-301.3",
+      "section_title": "Password Managers and Sharing",
+      "text": "Employees must store work passwords in the company-approved password manager. Passwords must never be written down, sent by email or chat, or shared with colleagues, including managers and Service Desk staff. Shared team credentials are permitted only for systems that cannot support individual accounts, and they must be stored in a shared password manager vault with access logging."
+    },
+    {
+      "section_id": "SEC-301.4",
+      "section_title": "Service and Privileged Accounts",
+      "text": "Service accounts used by applications must have randomly generated passwords of at least 24 characters, rotated every 90 days or immediately when someone with access leaves the company. Administrator accounts must be separate from the employee's everyday account and must use phishing-resistant multi-factor authentication under SEC-302. Default passwords on new systems and devices must be changed before the system is connected to the company network."
+    }
+  ]
+}
