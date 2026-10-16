@@ -9,7 +9,11 @@ RAGForge is a hands-on project that builds a Retrieval-Augmented Generation (RAG
 
 The project deliberately avoids RAG frameworks (LangChain, LlamaIndex) and vector databases so that every step can be inspected and explained.
 
-**Current status: Milestone 1 (M1), document ingestion and dense retrieval.** Nothing beyond M1 is implemented yet.
+**Current status:**
+
+- **M1** (document ingestion and dense retrieval): complete.
+- **M1.5** (evidence-level retrieval benchmark): complete.
+- M2 and later: not implemented.
 
 ## M1 Architecture
 
@@ -33,11 +37,12 @@ The corpus is embedded once at startup. Each question then costs one model forwa
 
 ```
 data/documents/                      24 policy documents, one JSON file each
-data/evaluations/retrieval_questions.json   29 labeled retrieval questions
+data/evaluations/retrieval_questions.json   55 labeled questions (section labels, dev/test split)
 src/ingest.py                        loading and validation
 src/chunking.py                      section-aware chunking
 src/embeddings.py                    Sentence Transformers wrapper + normalization
-src/retrieve.py                      cosine similarity, ranking, metrics, CLI
+src/retrieve.py                      cosine similarity, ranking, retrieval CLI
+src/evaluate.py                      benchmark: metrics, splits, failure analysis
 tests/test_retrieval.py              unittest suite
 ```
 
@@ -105,21 +110,25 @@ These steps assume Python 3.11–3.13. M1 was developed and tested on Python 3.1
    python -m unittest discover -s tests -v                          # fast: no model needed
    RAGFORGE_MODEL_TESTS=1 python -m unittest discover -s tests -v   # also loads the embedding model
    ```
-5. **Run the baseline evaluation**
+5. **Run the retrieval benchmark** (see [M1.5](#m15--retrieval-evaluation))
    ```bash
-   python -m src.retrieve --evaluate
+   python -m src.evaluate --split development              # development split (default)
+   python -m src.evaluate --split development --failures   # plus per-question results and failure analysis
+   python -m src.evaluate --split test                     # held-out split: final reporting only
+   python -m src.evaluate --split all                      # all 55 questions: descriptive only
    ```
+   `python -m src.retrieve --evaluate` is kept as an alias for the development-split command.
 
-## Baseline Retrieval Evaluation
+## M1 Baseline Evaluation (historical)
 
-`data/evaluations/retrieval_questions.json` holds 29 hand-labeled questions in four categories: exact keyword, semantic paraphrase, exact policy identifier (such as "What does FIN-205.3 say?"), and similar-policy disambiguation (such as domestic versus international refunds).
+M1 shipped with 29 hand-labeled questions in four categories: exact keyword, semantic paraphrase, exact policy identifier (such as "What does FIN-205.3 say?"), and similar-policy disambiguation (such as domestic versus international refunds).
 
 For each question, the top 5 **chunks** are retrieved and collapsed into a ranked list of unique **document** IDs (the first occurrence keeps its rank):
 
 - **Recall@5** is |relevant ∩ retrieved documents| / |relevant|, averaged over questions.
 - **MRR@5** is 1 / (rank of the first relevant document in that list), or 0 if none appears, averaged over questions.
 
-Results from `python -m src.retrieve --evaluate` with all-MiniLM-L6-v2, 92 chunks and a 120-word limit:
+These were the M1 results over the original 29 questions, with all-MiniLM-L6-v2, 92 chunks and a 120-word limit. M1.5 replaced this evaluation; see below.
 
 | Category | N | Recall@5 | MRR@5 |
 |---|---|---|---|
@@ -133,6 +142,94 @@ Results from `python -m src.retrieve --evaluate` with all-MiniLM-L6-v2, 92 chunk
 
 - Document-level Recall@5 is saturated, so this set cannot yet tell good retrievers from better ones. Harder questions, chunk-level metrics, or Recall@1 will be needed to compare methods in M2.
 - Exact-identifier questions are the weak spot. Questions such as "What does FIN-205.3 say?" find the right document, but often at rank 2 behind a document with similar wording. Dense embeddings capture meaning, not exact identifiers, so this is the case where adding BM25 lexical matching in M2 should help.
+
+## M1.5 — Retrieval Evaluation
+
+M1's document-level benchmark scored Recall@5 = 1.000, so it could not tell a good retriever from a better one. M1.5 measures whether retrieval finds the **evidence**, meaning the specific section that answers the question. The retriever, documents, chunking and embeddings are unchanged from M1. This milestone is measurement only.
+
+### Why document-level evaluation can be misleading
+
+A policy document has 3–4 sections on different topics. If the question asks about international store credit (REF-729.3) and retrieval returns REF-729.1 (refund deadlines), the document-level score is perfect, but a generator would see the wrong rule. With 24 documents and five chunks retrieved, the right document is almost always somewhere in the top five. Document-level Recall@5 is 1.000 on the development split, while the evidence section is ranked first for only 81% of questions.
+
+### Ground truth
+
+Every question has `relevant_document_ids` and `relevant_section_ids`. A section is labeled when its text states the rule needed for the answer. Sections that only mention the rule in passing, such as REF-729.4 saying "after the 45-day refund window", are not labeled. When an answer needs several rules, every section that holds one is labeled. The loader rejects any label that does not exist, any section whose document is not labeled, and any labeled document without a labeled section.
+
+`python -m src.evaluate` checks that every label refers to a real section. It does not check that the section contains the answer. I checked that by hand when writing the labels and by matching an answer phrase against each labeled section's text. That script is not part of the repository.
+
+| Category | What it tests | Total | Dev | Test |
+|---|---|---|---|---|
+| exact_keyword | question reuses the policy's own terms | 7 | 5 | 2 |
+| exact_identifier | question cites a section ID such as `FIN-205.3` | 10 | 7 | 3 |
+| semantic_paraphrase | different vocabulary from the source | 11 | 8 | 3 |
+| similar_policy_disambiguation | related policies with different rules | 12 | 8 | 4 |
+| numerical_threshold | exact amounts, durations, deadlines | 5 | 3 | 2 |
+| policy_exception | the exception, not the general rule | 5 | 3 | 2 |
+| multi_section | needs two or three sections | 5 | 3 | 2 |
+| **total** | | **55** | **37** | **18** |
+
+Questions Q001–Q029 are the original M1 questions, unchanged apart from the added section labels and split. Questions Q030–Q055 were written and labeled in one pass before the retriever was run on them, and none were edited or removed after seeing results.
+
+### Metrics
+
+All metrics use the top 5 chunks the retriever returns and are averaged over questions.
+
+| Metric | Ranked list it uses | Per-question value |
+|---|---|---|
+| Document Recall@5 | chunks collapsed to unique documents (M1 convention) | share of relevant documents found |
+| Section Recall@1 | section of chunk 1 | share of relevant sections found at rank 1 |
+| Section Hit@1 | section of chunk 1 | 1 if chunk 1 is from any relevant section |
+| Section Recall@5 | sections of chunks 1–5 | share of unique relevant sections found |
+| Section MRR@5 | sections of chunks 1–5 | 1 / chunk rank of first relevant section, else 0 |
+
+- **Recall@K vs MRR@K.** Recall@K asks whether the evidence is in the top K at all: did the generator get to see it? MRR@K asks how high the first piece of evidence is: is it near the top or buried at rank 5? Two retrievers can both have Recall@5 = 1 while one ranks the evidence first and the other fifth. MRR separates them.
+- **Section Recall@1 vs Hit@1.** For a question with one relevant section they are identical. For a question with three relevant sections, a correct first chunk gives Hit@1 = 1 but Recall@1 = 1/3, because one chunk can hold only one section. Hit@1 asks whether the top result is useful. Recall@1 asks how much of the evidence the top result covers.
+- **How multi-section questions are scored.** They get partial credit: finding 2 of 3 required sections in the top 5 gives Section Recall@5 = 0.667. Sections are counted once, so a section that was split into two chunks cannot be counted twice. MRR uses the rank of the first relevant chunk only.
+- **Section ranks are chunk ranks.** Section metrics use the raw chunk list without collapsing it, so a relevant section at chunk 3 has reciprocal rank 1/3. Document metrics keep the M1 convention of collapsing to unique documents first. The two levels are therefore not directly comparable.
+
+### Development and held-out test splits
+
+Each question has `split: development` or `split: test`. The split is deterministic and stratified by category: `assign_splits()` in `src/evaluate.py` sorts each category's IDs, shuffles them with a fixed seed (1729), and puts the first `round(0.3 × n)` into test. The recipe uses only IDs and categories, never retrieval results. A unit test checks that the stored splits match it.
+
+Rules for M2 and later:
+
+1. Inspect failures, compare approaches and choose parameters (such as BM25 settings, fusion weights or top-K) **only on the development split**. `--failures` works only for that split.
+2. Freeze the configuration, then run it on the test split once and report development and test scores separately.
+3. Never change documents, labels or retrieval settings in response to test results.
+
+This is a **held-out query split, not a held-out corpus**. Test questions ask about the same 24 documents (and sometimes the same sections) as development questions. It estimates how a frozen configuration handles new questions about known documents. It says nothing about how it would handle unseen documents, departments or writing styles.
+
+### Results: M1 dense retriever on the development split
+
+From `python -m src.evaluate --split development`, all-MiniLM-L6-v2 with 92 chunks:
+
+| Metric | Development (37) |
+|---|---|
+| Document Recall@5 | 1.000 |
+| Section Recall@1 | 0.752 |
+| Section Hit@1 | 0.811 |
+| Section Recall@5 | 0.964 |
+| Section MRR@5 | 0.887 |
+
+| Category (dev) | N | Section Hit@1 | Section Recall@5 | Section MRR@5 |
+|---|---|---|---|---|
+| exact_keyword | 5 | 1.000 | 1.000 | 1.000 |
+| exact_identifier | 7 | 0.429 | 0.857 | 0.643 |
+| semantic_paraphrase | 8 | 0.875 | 1.000 | 0.917 |
+| similar_policy_disambiguation | 8 | 0.750 | 1.000 | 0.875 |
+| numerical_threshold | 3 | 1.000 | 1.000 | 1.000 |
+| policy_exception | 3 | 1.000 | 1.000 | 1.000 |
+| multi_section | 3 | 1.000 | 0.889 | 1.000 |
+
+Categories with 3 questions move by 0.33 per question, so read their scores as anecdotes. The development failure analysis found 7 top-1 misses. Four cite a section identifier. One of these, "What does FIN-205.3 say?", ranks its evidence 62nd of 92 chunks. Two put the right document's wrong section first, and one confused the warranty policy with the shipping policy. Q051 also misses one of its three required sections.
+
+### Limitations
+
+- **Small synthetic corpus.** There are 24 short, clean, consistently formatted documents written by one author. Real corpora are larger and noisier: duplicates, outdated versions, tables, PDFs. Scores here will not transfer.
+- **Small question set.** A single question moves a development category score by 0.12–0.33, so differences of a few points between methods are noise.
+- **Sections are not answers.** A section label says where the evidence lives, not that the exact sentence was retrieved or that a generator would use it correctly. Answer-level evaluation comes later (M4–M5).
+- **One labeler, who also wrote the documents.** Questions may unconsciously follow the documents' wording. Labels for questions that could be read more than one way are judgment calls.
+- **Leakage risk.** Development and test questions share documents and sometimes sections, and the test split has been run once to verify the command. Any change made after looking at test numbers would undermine the split.
 
 ## Future Milestones (not implemented)
 

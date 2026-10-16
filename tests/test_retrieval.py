@@ -19,17 +19,22 @@ import numpy as np
 from src.chunking import DEFAULT_MAX_WORDS, chunk_documents, split_text
 from src.embeddings import normalize_rows
 from src.ingest import DocumentValidationError, REQUIRED_DOCUMENT_FIELDS, load_documents, validate_document
-from src.retrieve import (
-    cosine_similarities,
-    cosine_similarity,
+from src.evaluate import (
+    CATEGORIES,
+    SPLITS,
+    assign_splits,
+    failure_analysis,
+    first_relevant_rank,
+    hit_at_k,
     load_evaluation_questions,
-    rank_chunks,
     recall_at_k,
     reciprocal_rank_at_k,
-    retrieve,
-    summarize_evaluation,
+    score_question,
+    summarize,
     unique_document_ids,
+    validate_questions,
 )
+from src.retrieve import cosine_similarities, cosine_similarity, rank_chunks, retrieve
 
 RUN_MODEL_TESTS = os.environ.get("RAGFORGE_MODEL_TESTS") == "1"
 
@@ -262,69 +267,261 @@ class RankingTests(unittest.TestCase):
             retrieve("valid question", None, self.chunks, self.embeddings, top_k=0)
 
 
-class EvaluationTests(unittest.TestCase):
-    def test_labels_reference_existing_documents(self):
-        known = {document["document_id"] for document in load_documents()}
-        questions = load_evaluation_questions(known_document_ids=known)
-        self.assertGreaterEqual(len(questions), 20)
-        for item in questions:
-            self.assertTrue(set(item["relevant_document_ids"]) <= known, item["question_id"])
+def toy_chunk(section_id, department="Dept", similarity=0.5):
+    document_id = section_id.split(".")[0]
+    return {"chunk_id": f"{section_id}#0", "document_id": document_id, "section_id": section_id,
+            "title": f"{document_id} title", "section_title": "s", "department": department,
+            "similarity": similarity}
 
-    def test_all_categories_present(self):
-        categories = {item["category"] for item in load_evaluation_questions()}
-        self.assertEqual(
-            categories,
-            {"exact_keyword", "semantic_paraphrase", "exact_identifier", "similar_policy_disambiguation"},
-        )
 
-    def test_unknown_document_label_is_rejected(self):
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory, "q.json")
-            path.write_text(json.dumps([
-                {"question_id": "Q1", "question": "q?", "relevant_document_ids": ["NOPE-1"], "category": "c"}
-            ]))
-            with self.assertRaisesRegex(ValueError, "unknown documents"):
-                load_evaluation_questions(path, known_document_ids={"DOC-1"})
+def toy_question(question_id="T1", sections=("A.1",), documents=None, category="exact_keyword", split="development"):
+    sections = list(sections)
+    if documents is None:
+        documents = sorted({s.split(".")[0] for s in sections})
+    return {"question_id": question_id, "question": "toy?", "relevant_document_ids": documents,
+            "relevant_section_ids": sections, "category": category, "split": split}
 
-    def test_unique_document_ids_preserve_rank_order(self):
-        results = [{"document_id": d} for d in ["A", "B", "A", "C", "B"]]
-        self.assertEqual(unique_document_ids(results), ["A", "B", "C"])
 
-    def test_recall_at_k(self):
-        self.assertEqual(recall_at_k(["A", "B", "C"], ["B"]), 1.0)
+ORIGINAL_QUESTION_IDS = [f"Q{i:03d}" for i in range(1, 30)]
+ORIGINAL_DOCUMENT_LABELS = {
+    "Q001": ["FIN-203"], "Q002": ["HR-104"], "Q003": ["SEC-302"], "Q004": ["HR-102"], "Q005": ["FIN-201"],
+    "Q006": ["ESC-733"], "Q007": ["SUB-730"], "Q008": ["REF-729"], "Q009": ["HR-102"],
+    "Q010": ["SEC-305", "SEC-304"], "Q011": ["HR-105"], "Q012": ["SEC-304"], "Q013": ["SHP-732"],
+    "Q014": ["HR-101"], "Q015": ["SEC-301"], "Q016": ["HR-103"], "Q017": ["REF-729"], "Q018": ["FIN-202"],
+    "Q019": ["WAR-731"], "Q020": ["FIN-205"], "Q021": ["SEC-306"], "Q022": ["REF-728"], "Q023": ["REF-729"],
+    "Q024": ["HR-104"], "Q025": ["FIN-204"], "Q026": ["FIN-203"], "Q027": ["FIN-206"], "Q028": ["HR-106"],
+    "Q029": ["FIN-205"],
+}
+
+
+class BenchmarkDatasetTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.documents = load_documents()
+        # Loading with documents runs the full reference validation.
+        cls.questions = load_evaluation_questions(documents=cls.documents)
+        cls.section_to_document = {
+            s["section_id"]: d["document_id"] for d in cls.documents for s in d["sections"]
+        }
+
+    def test_question_ids_are_unique(self):
+        ids = [q["question_id"] for q in self.questions]
+        self.assertEqual(len(ids), len(set(ids)))
+
+    def test_document_labels_exist(self):
+        known = {d["document_id"] for d in self.documents}
+        for q in self.questions:
+            self.assertTrue(set(q["relevant_document_ids"]) <= known, q["question_id"])
+
+    def test_section_labels_exist(self):
+        for q in self.questions:
+            self.assertTrue(set(q["relevant_section_ids"]) <= set(self.section_to_document), q["question_id"])
+
+    def test_sections_belong_to_labeled_documents(self):
+        for q in self.questions:
+            owners = {self.section_to_document[s] for s in q["relevant_section_ids"]}
+            self.assertEqual(owners, set(q["relevant_document_ids"]), q["question_id"])
+
+    def test_both_splits_exist_with_every_category(self):
+        for split in SPLITS:
+            categories = {q["category"] for q in self.questions if q["split"] == split}
+            self.assertEqual(categories, set(CATEGORIES), split)
+        test_share = sum(q["split"] == "test" for q in self.questions) / len(self.questions)
+        self.assertTrue(0.25 <= test_share <= 0.35, test_share)
+
+    def test_categories_are_valid(self):
+        for q in self.questions:
+            self.assertIn(q["category"], CATEGORIES, q["question_id"])
+
+    def test_original_questions_preserved(self):
+        by_id = {q["question_id"]: q for q in self.questions}
+        for question_id in ORIGINAL_QUESTION_IDS:
+            self.assertIn(question_id, by_id)
+            self.assertEqual(by_id[question_id]["relevant_document_ids"], ORIGINAL_DOCUMENT_LABELS[question_id])
+
+    def test_stored_split_matches_deterministic_recipe(self):
+        expected = assign_splits(self.questions)
+        self.assertEqual({q["question_id"]: q["split"] for q in self.questions}, expected)
+        self.assertEqual(assign_splits(list(reversed(self.questions))), expected)
+
+    def test_benchmark_size(self):
+        self.assertGreaterEqual(len(self.questions), 50)
+        self.assertTrue(any(len(q["relevant_section_ids"]) > 1 for q in self.questions))
+
+
+class LabelValidationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.documents = load_documents()
+
+    def assertRejected(self, question, pattern):
+        with self.assertRaisesRegex(ValueError, pattern):
+            validate_questions([question], self.documents)
+
+    def test_valid_question_passes(self):
+        validate_questions([toy_question(sections=["REF-729.1"])], self.documents)
+
+    def test_empty_section_labels_rejected(self):
+        self.assertRejected(toy_question(sections=[], documents=["REF-729"]), "relevant_section_ids")
+
+    def test_empty_document_labels_rejected(self):
+        self.assertRejected(toy_question(sections=["REF-729.1"], documents=[]), "relevant_document_ids")
+
+    def test_blank_label_rejected(self):
+        self.assertRejected(toy_question(sections=["REF-729.1", " "], documents=["REF-729"]), "empty or non-string")
+
+    def test_duplicate_label_rejected(self):
+        self.assertRejected(toy_question(sections=["REF-729.1", "REF-729.1"], documents=["REF-729"]), "duplicate")
+
+    def test_unknown_section_rejected(self):
+        self.assertRejected(toy_question(sections=["REF-729.9"], documents=["REF-729"]), "unknown sections")
+
+    def test_unknown_document_rejected(self):
+        self.assertRejected(toy_question(sections=["REF-729.1"], documents=["REF-729", "NOPE-1"]), "unknown documents")
+
+    def test_section_outside_labeled_documents_rejected(self):
+        self.assertRejected(toy_question(sections=["REF-728.1"], documents=["REF-729"]), "not labeled relevant")
+
+    def test_document_without_section_rejected(self):
+        self.assertRejected(toy_question(sections=["REF-729.1"], documents=["REF-729", "REF-728"]), "no labeled section")
+
+    def test_bad_category_and_split_rejected(self):
+        self.assertRejected(toy_question(sections=["REF-729.1"], category="bm25_friendly"), "category")
+        self.assertRejected(toy_question(sections=["REF-729.1"], split="train"), "split")
+
+    def test_missing_field_and_duplicate_id_rejected(self):
+        question = toy_question(sections=["REF-729.1"])
+        del question["relevant_section_ids"]
+        self.assertRejected(question, "missing")
+        duplicate = toy_question(sections=["REF-729.1"])
+        with self.assertRaisesRegex(ValueError, "Duplicate question_id"):
+            validate_questions([duplicate, dict(duplicate)], self.documents)
+
+
+class MetricTests(unittest.TestCase):
+    def test_document_level_metrics_unchanged(self):
         self.assertEqual(recall_at_k(["A", "B", "C"], ["B", "Z"]), 0.5)
-        self.assertEqual(recall_at_k(["A", "B", "C"], ["Z"]), 0.0)
-        # Only the first k documents count.
         self.assertEqual(recall_at_k(["A", "B", "C", "D", "E", "F"], ["F"], k=5), 0.0)
-
-    def test_reciprocal_rank_at_k(self):
-        self.assertEqual(reciprocal_rank_at_k(["A", "B", "C"], ["A"]), 1.0)
         self.assertEqual(reciprocal_rank_at_k(["A", "B", "C"], ["C", "B"]), 0.5)
-        self.assertEqual(reciprocal_rank_at_k(["A", "B", "C"], ["Z"]), 0.0)
-        self.assertEqual(reciprocal_rank_at_k(["A", "B", "C", "D", "E", "F"], ["F"], k=5), 0.0)
         self.assertAlmostEqual(reciprocal_rank_at_k(["A", "B", "C", "D", "E"], ["E"], k=5), 0.2)
+        self.assertEqual(unique_document_ids([{"document_id": d} for d in "ABACB"]), ["A", "B", "C"])
 
-    def test_empty_relevant_labels_are_rejected(self):
-        with self.assertRaises(ValueError):
-            recall_at_k(["A"], [])
-        with self.assertRaises(ValueError):
-            reciprocal_rank_at_k(["A"], [])
+    def test_section_recall_at_1(self):
+        ranking = [toy_chunk(s) for s in ["A.1", "A.2", "B.1"]]
+        self.assertEqual(score_question(toy_question(sections=["A.1"]), ranking)["section_recall@1"], 1.0)
+        self.assertEqual(score_question(toy_question(sections=["A.2"]), ranking)["section_recall@1"], 0.0)
+        # Two relevant sections, only one can be at rank 1.
+        self.assertEqual(score_question(toy_question(sections=["A.1", "B.1"]), ranking)["section_recall@1"], 0.5)
+
+    def test_section_hit_at_1_differs_from_recall_at_1(self):
+        ranking = [toy_chunk(s) for s in ["A.1", "B.1"]]
+        scores = score_question(toy_question(sections=["A.1", "B.1"]), ranking)
+        self.assertEqual(scores["section_hit@1"], 1.0)
+        self.assertEqual(scores["section_recall@1"], 0.5)
+        self.assertEqual(hit_at_k(["X", "A"], ["A"], k=1), 0.0)
+        self.assertEqual(hit_at_k(["X", "A"], ["A"], k=2), 1.0)
+
+    def test_section_recall_at_5(self):
+        ranking = [toy_chunk(s) for s in ["A.1", "B.1", "C.1", "D.1", "E.1", "F.1"]]
+        self.assertEqual(score_question(toy_question(sections=["E.1"]), ranking)["section_recall@5"], 1.0)
+        # Rank 6 is outside the top 5.
+        self.assertEqual(score_question(toy_question(sections=["F.1"]), ranking)["section_recall@5"], 0.0)
+
+    def test_section_mrr_at_5_uses_chunk_ranks(self):
+        # A.1 is split into two chunks; the second document appears at chunk rank 3, not "document rank 2".
+        ranking = [toy_chunk(s) for s in ["A.1", "A.1", "B.2", "C.1"]]
+        scores = score_question(toy_question(sections=["B.2"]), ranking)
+        self.assertAlmostEqual(scores["section_mrr@5"], 1 / 3)
+        self.assertAlmostEqual(scores["document_mrr@5"], 1 / 2)
+        ranking = [toy_chunk(s) for s in ["A.1", "B.1", "C.1", "D.1", "E.1", "F.2"]]
+        self.assertEqual(score_question(toy_question(sections=["F.2"]), ranking)["section_mrr@5"], 0.0)
+
+    def test_duplicate_chunks_do_not_inflate_recall(self):
+        ranking = [toy_chunk(s) for s in ["A.1", "A.1", "A.1", "C.1", "D.1"]]
+        scores = score_question(toy_question(sections=["A.1", "B.1"]), ranking)
+        self.assertEqual(scores["section_recall@5"], 0.5)
+        self.assertEqual(recall_at_k(["A.1", "A.1"], ["A.1"]), 1.0)
+
+    def test_multi_section_partial_credit(self):
+        ranking = [toy_chunk(s) for s in ["X.1", "A.2", "Y.1", "A.3", "Z.1"]]
+        scores = score_question(toy_question(sections=["A.1", "A.2", "A.3"]), ranking)
+        self.assertAlmostEqual(scores["section_recall@5"], 2 / 3)
+        self.assertEqual(scores["section_recall@1"], 0.0)
+        self.assertEqual(scores["section_hit@1"], 0.0)
+        self.assertAlmostEqual(scores["section_mrr@5"], 0.5)
+        # Document level sees A at document rank 2 and counts it fully: evidence-level is stricter.
+        self.assertEqual(scores["document_recall@5"], 1.0)
+
+    def test_missing_relevant_sections_score_zero(self):
+        ranking = [toy_chunk(s) for s in ["X.1", "Y.1", "Z.1"]]
+        scores = score_question(toy_question(sections=["A.1", "B.1"]), ranking)
+        for name in ("section_recall@1", "section_hit@1", "section_recall@5", "section_mrr@5",
+                     "document_recall@5", "document_mrr@5"):
+            self.assertEqual(scores[name], 0.0, name)
+
+    def test_empty_relevant_labels_rejected_by_metrics(self):
+        for metric in (recall_at_k, hit_at_k, reciprocal_rank_at_k):
+            with self.assertRaises(ValueError):
+                metric(["A"], [])
 
     def test_summary_averages_overall_and_by_category(self):
         questions = [
-            {"question_id": "Q1", "category": "x", "relevant_document_ids": ["A"]},
-            {"question_id": "Q2", "category": "x", "relevant_document_ids": ["B", "C"]},
-            {"question_id": "Q3", "category": "y", "relevant_document_ids": ["Z"]},
+            toy_question("Q1", ["A.1"], category="exact_keyword"),
+            toy_question("Q2", ["B.1", "C.1"], category="exact_keyword"),
+            toy_question("Q3", ["Z.1"], category="multi_section"),
         ]
-        rankings = {"Q1": ["A", "B"], "Q2": ["A", "B"], "Q3": ["A", "B"]}
-        summary = summarize_evaluation(questions, rankings)
-        # Q1: R=1, RR=1. Q2: R=0.5, RR=0.5. Q3: R=0, RR=0.
-        self.assertAlmostEqual(summary["by_category"]["x"]["recall"], 0.75)
-        self.assertAlmostEqual(summary["by_category"]["x"]["mrr"], 0.75)
-        self.assertAlmostEqual(summary["by_category"]["y"]["recall"], 0.0)
-        self.assertAlmostEqual(summary["overall"]["recall"], 0.5)
-        self.assertAlmostEqual(summary["overall"]["mrr"], 0.5)
+        ranking = [toy_chunk(s) for s in ["A.1", "B.1"]]
+        summary = summarize(questions, {"Q1": ranking, "Q2": ranking, "Q3": ranking})
+        # Section Recall@5: Q1=1, Q2=0.5, Q3=0.  Section MRR@5: Q1=1, Q2=0.5, Q3=0.
+        self.assertAlmostEqual(summary["by_category"]["exact_keyword"]["section_recall@5"], 0.75)
+        self.assertAlmostEqual(summary["by_category"]["exact_keyword"]["section_mrr@5"], 0.75)
+        self.assertEqual(summary["by_category"]["multi_section"]["count"], 1)
+        self.assertAlmostEqual(summary["overall"]["section_recall@5"], 0.5)
+        self.assertAlmostEqual(summary["overall"]["section_hit@1"], 1 / 3)
         self.assertEqual(summary["overall"]["count"], 3)
+        for name, value in summary["overall"].items():
+            if name != "count":
+                self.assertTrue(0.0 <= value <= 1.0, name)
+
+
+class FailureAnalysisTests(unittest.TestCase):
+    def test_first_relevant_rank(self):
+        ranking = [toy_chunk(s) for s in ["X.1", "Y.1", "A.1"]]
+        self.assertEqual(first_relevant_rank(ranking, ["A.1"]), 3)
+        self.assertIsNone(first_relevant_rank(ranking, ["B.1"]))
+
+    def test_reports_top1_misses_and_partial_coverage(self):
+        departments = {"A": "Finance", "B": "Finance", "C": "Security"}
+        questions = [
+            toy_question("Q1", ["A.1"]),                                  # hit at rank 1
+            toy_question("Q2", ["A.2"]),                                  # wrong section, same document
+            toy_question("Q3", ["A.1"], category="exact_identifier"),    # top chunk from C
+            toy_question("Q4", ["A.1", "C.9"], category="multi_section"),  # hit@1 but misses C.9
+        ]
+        ranking = [toy_chunk("A.1", "Finance"), toy_chunk("B.1", "Finance"), toy_chunk("A.2", "Finance")]
+        other = [toy_chunk("C.1", "Security"), toy_chunk("A.1", "Finance")]
+        summary = summarize(questions, {"Q1": ranking, "Q2": ranking, "Q3": other, "Q4": ranking})
+        misses, partial = failure_analysis(summary, departments)
+
+        by_id = {m["question"]["question_id"]: m for m in misses}
+        self.assertEqual(sorted(by_id), ["Q2", "Q3"])
+        self.assertEqual(by_id["Q2"]["diagnosis"], "wrong section in correct document")
+        self.assertEqual(by_id["Q2"]["first_relevant_rank"], 3)
+        self.assertEqual(by_id["Q3"]["diagnosis"], "exact identifier mismatch")
+        self.assertEqual(by_id["Q3"]["relation"], "different department")
+        self.assertEqual([p["question"]["question_id"] for p in partial], ["Q4"])
+        self.assertEqual(partial[0]["missing_sections"], ["C.9"])
+
+    def test_disambiguation_miss_inside_correct_document_is_not_policy_confusion(self):
+        departments = {"A": "Finance", "B": "Finance"}
+        same_document = summarize([toy_question("Q1", ["A.2"], category="similar_policy_disambiguation")],
+                                  {"Q1": [toy_chunk("A.1", "Finance"), toy_chunk("A.2", "Finance")]})
+        other_policy = summarize([toy_question("Q2", ["A.2"], category="similar_policy_disambiguation")],
+                                 {"Q2": [toy_chunk("B.1", "Finance"), toy_chunk("A.2", "Finance")]})
+        self.assertEqual(failure_analysis(same_document, departments)[0][0]["diagnosis"],
+                         "wrong section in correct document")
+        self.assertEqual(failure_analysis(other_policy, departments)[0][0]["diagnosis"],
+                         "similar-policy confusion")
 
 
 @unittest.skipUnless(RUN_MODEL_TESTS, "set RAGFORGE_MODEL_TESTS=1 to run tests that load the embedding model")
@@ -362,6 +559,20 @@ class ModelIntegrationTests(unittest.TestCase):
             self.assertIn(result["document_id"], valid_document_ids)
             self.assertTrue(np.isfinite(result["similarity"]))
             self.assertLessEqual(abs(result["similarity"]), 1.0 + 1e-5)
+
+    def test_benchmark_runs_and_scores_are_bounded(self):
+        from src.evaluate import rank_all_chunks
+
+        questions = load_evaluation_questions(documents=self.documents)
+        rankings = rank_all_chunks(questions, self.model, self.chunks, self.embeddings)
+        for ranking in rankings.values():
+            self.assertEqual(len(ranking), len(self.chunks))
+        summary = summarize(questions, rankings)
+        self.assertEqual(summary["overall"]["count"], len(questions))
+        for row in [summary["overall"], *summary["by_category"].values()]:
+            for name, value in row.items():
+                if name != "count":
+                    self.assertTrue(0.0 <= value <= 1.0, f"{name}={value}")
 
 
 if __name__ == "__main__":
