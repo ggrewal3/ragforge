@@ -15,7 +15,8 @@ The project deliberately avoids RAG frameworks (LangChain, LlamaIndex) and vecto
 - **M1.5** (evidence-level retrieval benchmark): complete.
 - **M2** (BM25, hybrid retrieval with Reciprocal Rank Fusion, method comparison): complete.
 - **M2.5** (weighted RRF, four fixed weightings compared on the development split): complete.
-- M3 and later: not implemented.
+- **M3** (cross-encoder reranking of dense and hybrid candidates, development comparison): complete.
+- M4 and later: not implemented.
 
 ## M1 Architecture
 
@@ -52,12 +53,15 @@ src/ingest.py                        loading and validation
 src/chunking.py                      section-aware chunking
 src/embeddings.py                    Sentence Transformers wrapper + normalization
 src/bm25.py                          tokenizer and BM25 index/scoring, from scratch
-src/fusion.py                        Reciprocal Rank Fusion
-src/retrieve.py                      dense retrieval, search() for dense/bm25/hybrid, retrieval CLI
-src/evaluate.py                      benchmark: metrics, splits, failure analysis, method comparison
+src/fusion.py                        Reciprocal Rank Fusion (weighted since M2.5)
+src/rerank.py                        cross-encoder reranking (M3)
+src/retrieve.py                      dense retrieval, search() for all methods, retrieval CLI
+src/evaluate.py                      benchmark: metrics, splits, failure analysis, method comparisons
 tests/test_retrieval.py              M1 / M1.5 tests
-tests/test_hybrid.py                 M2 tests (BM25, RRF, retrieval interface)
+tests/test_hybrid.py                 M2 / M2.5 tests (BM25, RRF, retrieval interface)
+tests/test_rerank.py                 M3 tests (mock cross-encoder; real model opt-in)
 tests/fixtures/dense_regression.json dense top-5 results recorded before M2, for regression checks
+tests/fixtures/hybrid_regression.json BM25 and default-hybrid top-10 recorded before M2.5
 ```
 
 ### The synthetic knowledge base
@@ -123,8 +127,11 @@ These steps assume Python 3.11–3.13. M1 was developed and tested on Python 3.1
    python -m src.retrieve --question "What does FIN-205.3 say?" --method bm25     # no model download needed
    python -m src.retrieve --question "What does FIN-205.3 say?" --method hybrid   # shows RRF score + both ranks
    python -m src.retrieve --question "What does FIN-205.3 say?" --method hybrid --dense-weight 0.7 --bm25-weight 0.3
+   python -m src.retrieve --question "What does FIN-205.3 say?" --method dense-rerank    # dense top 20 -> cross-encoder
+   python -m src.retrieve --question "What does FIN-205.3 say?" --method hybrid-rerank   # hybrid 0.6/0.4 top 20 -> cross-encoder
+   python -m src.retrieve --question "What does FIN-205.3 say?" --method dense-rerank --candidates 10 --top-k 3
    ```
-   `--method` defaults to `dense`, so the M1 commands behave as before. Hybrid weights default to 0.5 / 0.5, which ranks exactly like M2.
+   `--method` defaults to `dense`, so the M1 commands behave as before. Hybrid weights default to 0.5 / 0.5, which ranks exactly like M2. `hybrid-rerank` defaults to 0.6 / 0.4. The first rerank run downloads the cross-encoder (about 90 MB) to the Hugging Face cache.
 4. **Run the tests**
    ```bash
    python -m unittest discover -s tests -v                          # fast: no model needed
@@ -137,6 +144,8 @@ These steps assume Python 3.11–3.13. M1 was developed and tested on Python 3.1
    python -m src.evaluate --split development --failures   # plus per-question results and failure analysis
    python -m src.evaluate --split development --compare    # dense, BM25 and four RRF weightings, with latency
    python -m src.evaluate --split development --compare --failures   # plus per-question changes and section ranks
+   python -m src.evaluate --split development --rerank     # dense / hybrid .6/.4, with and without the cross-encoder
+   python -m src.evaluate --split development --rerank --failures    # plus changes, candidate coverage, section ranks
    python -m src.evaluate --split test --compare --confirm-held-out  # held-out split: final reporting only
    python -m src.evaluate --split all --confirm-held-out             # all 55 questions: descriptive only
    ```
@@ -313,7 +322,7 @@ BM25 is very confident about FIN-205.3 (score 6.86 against 3.01 for the next chu
 
 ### Results on the development split (observed)
 
-From `python -m src.evaluate --split development --compare`. Latency is query time only, from one run on an Apple Silicon laptop (CPU), so treat it as rough. One-time setup took 4.1 s to load the model, 0.18 s to embed the chunks and under 0.01 s to build the BM25 index.
+From `python -m src.evaluate --split development --compare`. Latency is query time only, from one run on an Apple M4 Pro laptop, so treat it as rough. The embedding model ran on the MPS (Apple GPU) device that sentence-transformers selects automatically, and BM25 and fusion ran on the CPU. Before M3 this section said "CPU", which was wrong for the dense part. One-time setup took 4.1 s to load the model, 0.18 s to embed the chunks and under 0.01 s to build the BM25 index.
 
 | Metric (37 dev questions) | Dense | BM25 | Hybrid (RRF) |
 |---|---|---|---|
@@ -356,7 +365,7 @@ M2 was compared on the development split only. Following the M1.5 protocol, the 
 - **The question mix decides the winner.** With 7 identifier questions and 8 paraphrases out of 37, the overall comparison mostly reflects that proportion. A corpus with more ID lookups would favor BM25 or hybrid.
 - **Simple tokenizer.** Only plurals are stemmed, there are no synonyms, and the identifier pattern is fixed.
 - **Untuned defaults.** k1, b and the RRF constant were not tuned, which keeps the comparison fair to the M1 baseline. Any tuning must use the development split only.
-- **Latency** comes from a single CPU run on a 92-chunk corpus. The ordering (BM25 much faster than dense) is meaningful; the exact numbers are not.
+- **Latency** comes from a single run (dense on MPS, BM25 on the CPU) on a 92-chunk corpus. The ordering (BM25 much faster than dense) is meaningful; the exact numbers are not.
 
 ## M2.5 — Weighted Reciprocal Rank Fusion
 
@@ -409,7 +418,7 @@ The numbers in parentheses are questions with a relevant section at rank 1.
   - fusion only: 0.11–0.16 ms, which includes building result records for all 92 chunks;
   - total: retrieval plus fusion.
 
-  It excludes model loading (5.2 s in this run), chunk embedding (0.36 s), building the BM25 index and one untimed warm-up query. It comes from a single CPU run.
+  It excludes model loading (5.2 s in this run), chunk embedding (0.36 s), building the BM25 index and one untimed warm-up query. It comes from a single run on an Apple M4 Pro, with dense on MPS and BM25 and fusion on the CPU. The original M2.5 text said "CPU", which was wrong for the dense part.
 - **Metrics:** the Dense, BM25 and RRF .5/.5 columns reproduce the M2 numbers exactly.
 
 | Section Hit@1 by category | N | Dense | BM25 | .5/.5 | .6/.4 | .7/.3 | .8/.2 |
@@ -472,9 +481,137 @@ What the per-question results show:
 
 **Also fixed in M2.5:** `bm25_scores` returned NaN for chunks without the query term when `k1 = 0`, because 0/0 is undefined. Now only chunks containing the term are scored. Scores at the default k1 = 1.5 are bit-for-bit unchanged, as the BM25 regression test confirms.
 
+## M3 — Neural Reranking with a Cross-Encoder
+
+M3 adds a second retrieval stage. A first-stage retriever (dense, or hybrid 0.6/0.4) returns 20 candidate chunks, a pretrained cross-encoder scores each question–candidate pair, and the 5 best are returned. Nothing is trained or fine-tuned, the first-stage retrievers are unchanged, and dense remains the default method.
+
+### Bi-encoder vs cross-encoder
+
+| | Bi-encoder (dense retriever, all-MiniLM-L6-v2) | Cross-encoder (reranker, ms-marco-MiniLM-L-6-v2) |
+|---|---|---|
+| Input | question and chunk encoded **separately** | question and chunk encoded **together**: `[CLS] question [SEP] chunk [SEP]` |
+| Output | one embedding per text; relevance = cosine | one relevance score per pair |
+| Interaction | none until the final dot product | every attention layer lets question tokens attend to chunk tokens |
+| Precompute | chunk embeddings computed once | nothing; every pair needs its own forward pass |
+| Cost per query | 1 forward pass + a matrix-vector product | 1 forward pass per candidate |
+
+Because a cross-encoder reads the question and the passage together, it can in principle tell a passage that *answers* the question from one that only shares its topic. Because nothing can be precomputed, scoring all 92 chunks for every question would be slow at scale, so it is used to reorder a short candidate list. The scores are raw logits from a model trained on web-search relevance (MS MARCO). They can only be compared within one question, they are not probabilities, and a high score means "topically relevant". It does not mean "true" or "entails the answer".
+
+### Pipelines and candidate recall
+
+- **Dense→CE:** dense top 20 → cross-encoder → top 5.
+- **Hybrid→CE:** weighted RRF 0.6 / 0.4 top 20 → cross-encoder → top 5.
+
+Both use the same loaded model, batch size (32, so the 20 pairs go in one batch), candidate count and output count. The text the reranker sees is the same text the dense model embeds: `"{title} - {section_title} ({section_id}): {text}"`. It never includes scores, ranks or labels. Ties are broken by first-stage rank, then by chunk ID.
+
+**A reranker can only reorder its candidates.** Candidate Recall@K, the fraction of a question's relevant sections among the first K first-stage chunks, measured before reranking, is therefore an upper bound on what reranking can achieve:
+
+| First stage (dev) | Recall@5 | Recall@10 | Recall@20 | Hit@20 |
+|---|---|---|---|---|
+| Dense | 0.964 | 0.973 | 0.973 | 0.973 |
+| Hybrid 0.6/0.4 | 0.977 | 0.986 | 0.986 | 1.000 |
+
+Dense misses one section in its top 20 (Q020 FIN-205.3, dense rank 62). Hybrid also misses one (Q010 SEC-304.2, hybrid rank 21, just outside), so its Hit@20 is 1.000 but its Recall@20 is not. Going from 10 to 20 candidates adds no relevant sections for either retriever on this set. This is a diagnostic from existing rankings, not a tuning run.
+
+### Results on the development split (observed, 37 questions)
+
+From `python -m src.evaluate --split development --rerank`:
+
+| Metric | Dense | Hybrid 0.6/0.4 | Dense→CE | Hybrid→CE |
+|---|---|---|---|---|
+| Document Recall@5 | **1.000** | 0.986 | 0.959 | 0.959 |
+| Section Recall@1 | 0.752 | **0.793** | 0.779 | 0.779 |
+| Section Hit@1 | 0.811 (30) | **0.838** (31) | **0.838** (31) | **0.838** (31) |
+| Section Recall@5 | 0.964 | **0.977** | 0.892 | 0.919 |
+| Section MRR@5 | 0.887 | **0.897** | 0.874 | 0.883 |
+| Query latency, mean | 4.2 ms | 4.4 ms | 27.3 ms | 27.5 ms |
+
+**On this benchmark, cross-encoder reranking does not improve on hybrid 0.6/0.4.** It ties on Hit@1, loses on Recall@5 (0.892 and 0.919 against 0.977) and loses slightly on MRR. Compared with dense alone, reranking gets one more question right at rank 1 but drops 2–3 relevant sections out of the top 5.
+
+| Section Hit@1 by category (dev) | N | Dense | Hybrid .6/.4 | Dense→CE | Hybrid→CE |
+|---|---|---|---|---|---|
+| exact_keyword | 5 | 1.000 | 1.000 | 1.000 | 1.000 |
+| exact_identifier | 7 | 0.429 | 0.857 | 0.857 | 0.857 |
+| semantic_paraphrase | 8 | 0.875 | 0.500 | 0.625 | 0.625 |
+| similar_policy_disambiguation | 8 | 0.750 | 0.875 | 0.750 | 0.750 |
+| numerical_threshold | 3 | 1.000 | 1.000 | 1.000 | 1.000 |
+| policy_exception | 3 | 1.000 | 1.000 | 1.000 | 1.000 |
+| multi_section | 3 | 1.000 | 1.000 | 1.000 | 1.000 |
+
+On paraphrases, Section Recall@5 falls from 1.000 (dense) and 0.938 (hybrid) to 0.688 with either reranker. Categories with 3 questions move by 0.33 per question and should be read as anecdotes.
+
+### Improvements and regressions (observed)
+
+A question counts as improved or regressed when its Section Hit@1, Recall@5 or MRR@5 changes.
+
+| Comparison | Improved | Regressed |
+|---|---|---|
+| Dense→CE vs Dense | Q015, Q016, Q021 (identifiers), Q051 (multi-section) | Q010, Q012, Q047, Q049 (paraphrases), Q036 (disambiguation), Q054 (multi-section) |
+| Hybrid→CE vs Hybrid .6/.4 | Q010, Q013 (paraphrases), Q020 (identifier), Q051 | Q012, Q047, Q049 (paraphrases), Q036, Q054 |
+| Hybrid→CE vs Dense→CE | Q020 | none |
+
+Ranks of relevant sections (chunk rank; for the rerank pipelines this is the rank after reranking, and "-" means not among the 20 candidates):
+
+| Question | Section | Dense | Hybrid .6/.4 | Dense→CE | Hybrid→CE |
+|---|---|---|---|---|---|
+| Q020 FIN-205.3 | FIN-205.3 | 62 | 5 | - | 3 |
+| Q010 stolen laptop | SEC-305.4 | 1 | 4 | 1 | 1 |
+| | SEC-304.2 | 4 | 21 | 13 | - |
+| Q015 SEC-301.4 | SEC-301.4 | 2 | 1 | 1 | 1 |
+| Q016 HR-103.3 | HR-103.3 | 2 | 1 | 1 | 1 |
+| Q021 SEC-306.2 | SEC-306.2 | 2 | 1 | 1 | 1 |
+| Q033 refund deadlines | REF-728.1 / REF-729.1 | 3 / 2 | 2 / 3 | 3 / 2 | 3 / 2 |
+| Q036 store credit | REF-729.3 | 2 | 1 | 3 | 3 |
+| Q049 warranty postage | WAR-731.3 | 3 | 2 | 7 | 6 |
+| Q051 purchasing | FIN-202.2 / .3 / .4 | 3 / 7 / 1 | 8 / 5 / 1 | 4 / 3 / 1 | 4 / 3 / 1 |
+| Q054 new-hire setup | HR-103.2 / SEC-301.1 | 1 / 5 | 1 / 3 | 1 / 10 | 1 / 11 |
+
+- **Q020:** FIN-205.3 is not among dense's 20 candidates, so Dense→CE cannot recover it. Hybrid includes it at rank 5, and the cross-encoder moves it to 3. It still ranks FIN-205.2 (budget owners) first and FIN-204.3 (card receipts) second for "What does FIN-205.3 say?". With an identifier-only question it has little besides topic to go on.
+- **Q010:** the cross-encoder restores SEC-305.4 (lost devices) to rank 1 in both pipelines. The reporting section SEC-304.2 is a dense candidate but ends up 13th after reranking. It is not a hybrid candidate at all (rank 21). Reranking does not restore it.
+- **Q015, Q016, Q021:** the identifier gains are kept. The cross-encoder puts the cited section first even from dense candidates, where dense had it 2nd.
+- **Q033:** both sections stay in the top 5 under every pipeline, at ranks 2–3. Neither reaches rank 1.
+- **Q036:** regressed. REF-729.3 falls from rank 1 (hybrid) or 2 (dense) to rank 3.
+- **Q049:** regressed. WAR-731.3 falls from rank 2–3 to rank 6–7, out of the top 5.
+- **Q051:** improved. All three required sections are candidates in both pipelines, and after reranking all three are in the top 5 (ranks 1, 3 and 4) for the first time.
+- **Relevant sections that were candidates but were reranked out of the top 5:**
+  - Dense→CE: Q010 SEC-304.2 (13), Q047 SEC-302.3 (7), Q049 WAR-731.3 (7), Q054 SEC-301.1 (10).
+  - Hybrid→CE: Q047 (11), Q049 (6), Q054 (11).
+
+  These are reranker errors, not candidate-recall errors. They are concentrated in casual paraphrases ("sign-in approval requests on my phone", "postage for a faulty gadget"), which is a plausible mismatch with the web-search data the model was trained on (a hypothesis, not tested here).
+- **After reranking, the first stage matters mainly through which chunks are candidates.** Dense→CE and Hybrid→CE differ on only one question (Q020), the one where the candidate sets differ in a relevant section.
+
+### Latency
+
+Measured on an Apple M4 Pro, with both transformer models on the MPS (Apple GPU) device and BM25 and fusion on the CPU. Each pipeline uses one loaded cross-encoder, batch size 32, and 20 candidates (one batch). One-time costs are excluded: loading the embedding model (4.6 s), embedding the chunks (0.17 s), building the BM25 index (under 0.01 s) and loading the cross-encoder (1.9 s; the first-ever run also downloads it). The timed pass follows a complete untimed warm-up pass over all development questions. An earlier run with a single warm-up call showed a mean about 10 ms too high for the first cross-encoder call in each question.
+
+| Per question, ms (mean / median) | How measured | Time |
+|---|---|---|
+| Dense retrieval | measured | 4.20 / 4.33 |
+| Hybrid 0.6/0.4 retrieval | sum of dense + BM25 + fusion | 4.43 / 4.58 |
+| Cross-encoder, 20 dense candidates | measured | 23.09 / 22.94 |
+| Cross-encoder, 20 hybrid candidates | measured | 23.01 / 23.08 |
+| Dense→CE total | sum of components / measured end to end | 27.29 / 27.32 (mean) |
+| Hybrid→CE total | sum of components / measured end to end | 27.44 / 27.49 (mean) |
+
+Reranking makes each query about 6× slower (about 23 ms more), and on this benchmark it buys no improvement over hybrid 0.6/0.4. These timings come from a single run on one laptop and are not production benchmarks.
+
+### Recommendation for M4 (cautious)
+
+- **Advance hybrid 0.6/0.4 without reranking as the primary candidate, and keep dense as the default until the test split is checked.** Hybrid 0.6/0.4 has the best development scores on every section metric, at about 4 ms per query.
+- **Do not adopt reranking on this evidence.** Hybrid→CE ties hybrid 0.6/0.4 on Hit@1 (31/37 each), loses 2 relevant sections from the top 5, and costs about 23 ms more per query.
+- **Reranking's specific gains should not be ignored.** It fixed Q051's three-section coverage and Q010's top result, and it made identifier questions work even from dense candidates. A reranker better matched to policy language might help, but this one was not tuned and should not be tuned on 37 questions.
+- **The evidence is weak.** All four pipelines are within one question of each other on Hit@1, which is the metric we prioritize. A one-time test-split run of the frozen candidates (dense, hybrid 0.6/0.4 and Hybrid→CE) would be the next step before choosing.
+
+### M3 limitations
+
+- **37 development questions.** One question moves Hit@1 by 0.027. All Hit@1 differences between pipelines are a single question.
+- **Off-the-shelf model.** The cross-encoder was trained on web search queries, not enterprise policy text, and was used without adaptation. Its weaknesses here may not hold for other models or domains.
+- **Synthetic, clean corpus.** Short, consistently structured sections and one author make candidate recall unusually high: 97–99% at K = 10.
+- **Relevance is not evidence.** A high cross-encoder score says a passage is on-topic, not that it contains or supports the answer. Answer verification is a later milestone.
+- **Latency** comes from one machine, one run and a tiny corpus. Cross-encoder cost grows linearly with the candidate count.
+
 ## Future Milestones (not implemented)
 
-- **M3**: Neural cross-encoder reranking
 - **M4**: LLM-generated answers with source citations
 - **M5**: Hallucination detection and evidence verification
 - **M6**: Fine-tuning a small transformer-based evidence verifier
