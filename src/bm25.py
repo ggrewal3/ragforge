@@ -171,7 +171,9 @@ def bm25_scores(index, query):
         if idf is None:
             continue
         tf = np.array([counts.get(term, 0) for counts in index["term_frequencies"]], dtype=np.float64)
-        scores += idf * tf * (k1 + 1.0) / (tf + length_norm)
+        # Only chunks containing the term score; this also avoids 0/0 when k1 = 0.
+        present = tf > 0
+        scores[present] += idf * tf[present] * (k1 + 1.0) / (tf[present] + length_norm[present])
     return scores
 
 

@@ -3,11 +3,11 @@
 Usage:
     python -m src.evaluate --split development                      # dense (default method)
     python -m src.evaluate --split development --method bm25        # one method: dense | bm25 | hybrid
-    python -m src.evaluate --split development --compare            # all three methods side by side
+    python -m src.evaluate --split development --compare            # dense, BM25, four RRF weightings
     python -m src.evaluate --split development --failures           # plus per-question diagnostics
-    python -m src.evaluate --split development --compare --failures # plus section ranks across methods
-    python -m src.evaluate --split test --compare                   # held-out: final reporting only
-    python -m src.evaluate --split all                              # descriptive reporting only
+    python -m src.evaluate --split development --compare --failures # plus per-question changes and ranks
+    python -m src.evaluate --split test --compare --confirm-held-out   # held-out: final reporting only
+    python -m src.evaluate --split all --confirm-held-out              # descriptive reporting only
 
 Two ranked lists are scored for each question, both taken from the same top-k chunks:
 
@@ -298,6 +298,70 @@ def section_rank(ranking, section_id):
     return first_relevant_rank(ranking, [section_id])
 
 
+# The fixed M2.5 fusion configurations: (name, dense weight, BM25 weight).
+# These four are the whole experiment; no other weights are searched.
+FUSION_CONFIGS = (
+    ("rrf_50_50", 0.5, 0.5),
+    ("rrf_60_40", 0.6, 0.4),
+    ("rrf_70_30", 0.7, 0.3),
+    ("rrf_80_20", 0.8, 0.2),
+)
+COMPARE_CONFIGS = ("dense", "bm25") + tuple(name for name, _, _ in FUSION_CONFIGS)
+
+
+def rank_configurations(questions, index, fusion_configs=FUSION_CONFIGS):
+    """Full rankings for dense, BM25 and every fusion configuration, with latency parts in ms.
+
+    Each question is retrieved once by dense and once by BM25 (complete
+    rankings); every fusion configuration then reuses those two lists, so
+    embeddings and BM25 scores are never recomputed per weighting. Latency
+    parts per configuration and question:
+        retrieval_ms  underlying retrieval (dense, BM25, or dense + BM25 for fusion)
+        fusion_ms     weighted RRF over the cached rankings (0 for dense / BM25)
+        total_ms      retrieval_ms + fusion_ms: the end-to-end query time
+    """
+    from src.retrieve import fuse_rankings, search
+
+    n_chunks = len(index["chunks"])
+    search("warm-up query", index, "dense", top_k=n_chunks)  # untimed one-off initialization
+    names = ("dense", "bm25") + tuple(name for name, _, _ in fusion_configs)
+    rankings = {name: {} for name in names}
+    timing = {name: {"retrieval_ms": [], "fusion_ms": [], "total_ms": []} for name in names}
+
+    def record(name, question_id, ranking, retrieval_ms, fusion_ms):
+        rankings[name][question_id] = ranking
+        timing[name]["retrieval_ms"].append(retrieval_ms)
+        timing[name]["fusion_ms"].append(fusion_ms)
+        timing[name]["total_ms"].append(retrieval_ms + fusion_ms)
+
+    for question in questions:
+        question_id, text = question["question_id"], question["question"]
+        start = time.perf_counter()
+        dense = search(text, index, "dense", top_k=n_chunks)
+        dense_ms = (time.perf_counter() - start) * 1000.0
+        start = time.perf_counter()
+        lexical = search(text, index, "bm25", top_k=n_chunks)
+        bm25_ms = (time.perf_counter() - start) * 1000.0
+        record("dense", question_id, dense, dense_ms, 0.0)
+        record("bm25", question_id, lexical, bm25_ms, 0.0)
+        for name, dense_weight, bm25_weight in fusion_configs:
+            start = time.perf_counter()
+            fused = fuse_rankings(dense, lexical, index["chunks"], n_chunks,
+                                  dense_weight=dense_weight, bm25_weight=bm25_weight)
+            record(name, question_id, fused, dense_ms + bm25_ms, (time.perf_counter() - start) * 1000.0)
+    return rankings, timing
+
+
+def configuration_latency(parts):
+    """Mean of each latency part, plus the median total, in ms."""
+    return {
+        "retrieval": statistics.fmean(parts["retrieval_ms"]),
+        "fusion": statistics.fmean(parts["fusion_ms"]),
+        "total": statistics.fmean(parts["total_ms"]),
+        "total_median": statistics.median(parts["total_ms"]),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Failure analysis (development split only)
 # ---------------------------------------------------------------------------
@@ -385,7 +449,10 @@ METRIC_LABELS = (
 SMALL_SAMPLE = 5
 
 
-METHOD_NAMES = {"dense": "Dense", "bm25": "BM25", "hybrid": "Hybrid (RRF)"}
+METHOD_NAMES = {
+    "dense": "Dense", "bm25": "BM25", "hybrid": "Hybrid (RRF)",
+    "rrf_50_50": "RRF .5/.5", "rrf_60_40": "RRF .6/.4", "rrf_70_30": "RRF .7/.3", "rrf_80_20": "RRF .8/.2",
+}
 
 
 def print_summary(summary, split, show_per_question, method="dense", latency=None):
@@ -464,68 +531,98 @@ def compare_question(question, rows_by_method):
             "scores": {method: {name: row[name] for name in METRIC_NAMES} for method, row in rows_by_method.items()}}
 
 
-def hybrid_verdict(dense_scores, hybrid_scores):
-    """'helped' / 'hurt' / 'mixed' / 'no change', judged on Section Hit@1, Recall@5 and MRR@5 versus dense."""
-    keys = ("section_hit@1", "section_recall@5", "section_mrr@5")
-    better = any(hybrid_scores[k] > dense_scores[k] + 1e-12 for k in keys)
-    worse = any(hybrid_scores[k] < dense_scores[k] - 1e-12 for k in keys)
+VERDICT_METRICS = ("section_hit@1", "section_recall@5", "section_mrr@5")
+
+
+def compare_verdict(base_scores, new_scores):
+    """'improved' / 'regressed' / 'mixed' / 'unchanged' on Section Hit@1, Recall@5 and MRR@5."""
+    better = any(new_scores[k] > base_scores[k] + 1e-12 for k in VERDICT_METRICS)
+    worse = any(new_scores[k] < base_scores[k] - 1e-12 for k in VERDICT_METRICS)
     if better and worse:
         return "mixed"
-    return "helped" if better else "hurt" if worse else "no change"
+    return "improved" if better else "regressed" if worse else "unchanged"
+
+
+def change_report(results, base, new):
+    """Question IDs grouped by how `new` compares with `base`, per question."""
+    base_rows = {row["question"]["question_id"]: row for row in results[base][0]["per_question"]}
+    report = {"improved": [], "regressed": [], "mixed": [], "unchanged": []}
+    for row in results[new][0]["per_question"]:
+        question_id = row["question"]["question_id"]
+        report[compare_verdict(base_rows[question_id], row)].append(question_id)
+    return report
 
 
 def print_comparison(results, split, timings):
-    methods = list(results)
-    print("\nRAGForge — Retrieval Method Comparison")
+    configs = list(results)
+    width = 11
+    header = "".join(f"{METHOD_NAMES[c]:>{width}}" for c in configs)
+    print("\nRAGForge — Retrieval Configuration Comparison")
     print(f"Split: {split}")
     print(f"Questions: {next(iter(results.values()))[0]['overall']['count']}")
-    print(f"\n{'Metric':<24}" + "".join(f"{METHOD_NAMES[m]:>14}" for m in methods))
+    print(f"\n{'Metric':<24}{header}")
     for key, label in METRIC_LABELS + (("document_mrr@5", "Document MRR@5 (M1)"),):
-        print(f"{label:<24}" + "".join(f"{results[m][0]['overall'][key]:>14.3f}" for m in methods))
-    for key, label in (("mean_ms", "Query latency mean ms"), ("median_ms", "Query latency median ms")):
-        print(f"{label:<24}" + "".join(f"{results[m][1][key]:>14.2f}" for m in methods))
+        print(f"{label:<24}" + "".join(f"{results[c][0]['overall'][key]:>{width}.3f}" for c in configs))
+    for part, label in (("retrieval", "Retrieval ms (mean)"), ("fusion", "Fusion-only ms (mean)"),
+                        ("total", "Total query ms (mean)"), ("total_median", "Total query ms (median)")):
+        print(f"{label:<24}" + "".join(f"{results[c][1][part]:>{width}.3f}" for c in configs))
     built = ", ".join(f"{name.replace('_', ' ')} {seconds:.2f} s" for name, seconds in timings.items())
     print(f"\nOne-time setup (not in query latency): {built}")
+    print("Hybrid total = dense retrieval + BM25 retrieval + fusion, each timed separately per question.")
 
-    for key, label in (("section_hit@1", "Section Hit@1"), ("section_mrr@5", "Section MRR@5")):
+    for key, label in (("section_hit@1", "Section Hit@1"), ("section_recall@5", "Section Recall@5"),
+                       ("section_mrr@5", "Section MRR@5")):
         print(f"\n{label} by category")
-        print(f"{'Category':<30}{'N':>3}" + "".join(f"{METHOD_NAMES[m]:>14}" for m in methods))
-        for category, scores in results[methods[0]][0]["by_category"].items():
+        print(f"{'Category':<30}{'N':>3}{header}")
+        for category, scores in results[configs[0]][0]["by_category"].items():
             flag = "  (n<5)" if scores["count"] < SMALL_SAMPLE else ""
-            values = "".join(f"{results[m][0]['by_category'][category][key]:>14.3f}" for m in methods)
+            values = "".join(f"{results[c][0]['by_category'][category][key]:>{width}.3f}" for c in configs)
             print(f"{category:<30}{scores['count']:>3}{values}{flag}")
 
 
-def print_rank_table(results):
-    """Development diagnostics: questions where any method misses rank 1 or a required section in the top 5."""
-    methods = list(results)
-    rows_by_question = {}
-    for method in methods:
-        for row in results[method][0]["per_question"]:
-            rows_by_question.setdefault(row["question"]["question_id"], {})[method] = row
+def print_change_reports(results):
+    """Per-question improvements and regressions of each fusion configuration."""
+    fusion = [c for c in results if c.startswith("rrf_")]
+    print("\nPer-question changes (Section Hit@1, Recall@5, MRR@5; 'mixed' = some up, some down)")
+    for new in fusion:
+        for base in ("dense", "rrf_50_50"):
+            if new == base or base not in results:
+                continue
+            report = change_report(results, base, new)
+            print(f"\n  {METHOD_NAMES[new]} vs {METHOD_NAMES[base]}: "
+                  + ", ".join(f"{verdict} {len(ids)}" for verdict, ids in report.items()))
+            for verdict in ("improved", "regressed", "mixed"):
+                if report[verdict]:
+                    print(f"    {verdict:<10}{' '.join(report[verdict])}")
 
-    print("\nSection ranks across methods (development only; '-' = not retrieved at any depth)")
-    print("Shown when any method misses Section Hit@1 or Section Recall@5. Ranks are chunk ranks in the full ranking.")
-    verdicts = {}
+
+def print_rank_table(results):
+    """Development diagnostics: questions where any configuration misses rank 1 or a required section in the top 5."""
+    configs = list(results)
+    width = 11
+    rows_by_question = {}
+    for config in configs:
+        for row in results[config][0]["per_question"]:
+            rows_by_question.setdefault(row["question"]["question_id"], {})[config] = row
+
+    print("\nSection ranks across configurations (development only; '-' = not retrieved at any depth)")
+    print("Shown when any configuration misses Section Hit@1 or Section Recall@5. Ranks are chunk ranks.")
     for question_id, rows in rows_by_question.items():
         if all(row["section_hit@1"] == 1.0 and row["section_recall@5"] == 1.0 for row in rows.values()):
             continue
-        view = compare_question(rows[methods[0]]["question"], rows)
+        view = compare_question(rows[configs[0]]["question"], rows)
         question = view["question"]
         print(f"\n  {question_id} [{question['category']}] {question['question']}")
-        print(f"    {'section':<12}" + "".join(f"{METHOD_NAMES[m]:>14}" for m in methods))
+        print(f"    {'section':<12}" + "".join(f"{METHOD_NAMES[c]:>{width}}" for c in configs))
         for section_id, ranks in view["section_ranks"].items():
-            cells = "".join(f"{'-' if ranks[m] is None else ranks[m]:>14}" for m in methods)
-            print(f"    {section_id:<12}{cells}")
+            print(f"    {section_id:<12}" + "".join(f"{'-' if ranks[c] is None else ranks[c]:>{width}}"
+                                                    for c in configs))
         for key, label in (("section_hit@1", "Hit@1"), ("section_recall@5", "Recall@5"), ("section_mrr@5", "MRR@5")):
-            print(f"    {label:<12}" + "".join(f"{view['scores'][m][key]:>14.2f}" for m in methods))
-        if "dense" in methods and "hybrid" in methods:
-            verdict = hybrid_verdict(view["scores"]["dense"], view["scores"]["hybrid"])
-            verdicts[verdict] = verdicts.get(verdict, 0) + 1
-            print(f"    Hybrid vs dense: {verdict}")
-    if verdicts:
-        print("\n  Hybrid vs dense over the questions listed: "
-              + ", ".join(f"{name} {count}" for name, count in sorted(verdicts.items())))
+            print(f"    {label:<12}" + "".join(f"{view['scores'][c][key]:>{width}.2f}" for c in configs))
+        if "dense" in configs:
+            verdicts = [f"{METHOD_NAMES[c]} {compare_verdict(view['scores']['dense'], view['scores'][c])}"
+                        for c in configs if c.startswith("rrf_")]
+            print(f"    vs dense:   {', '.join(verdicts)}")
 
 
 def main(argv=None):
@@ -536,13 +633,19 @@ def main(argv=None):
                         help="question split to evaluate (default: development)")
     parser.add_argument("--method", choices=METHODS, default="dense",
                         help="retrieval method to evaluate (default: dense)")
-    parser.add_argument("--compare", action="store_true", help="evaluate dense, BM25 and hybrid side by side")
+    parser.add_argument("--compare", action="store_true",
+                        help="dense, BM25 and four RRF weightings side by side")
     parser.add_argument("--failures", action="store_true",
                         help="per-question diagnostics (development split only); with --compare, "
-                             "section ranks across methods")
+                             "section ranks and per-question changes across configurations")
+    parser.add_argument("--confirm-held-out", action="store_true",
+                        help="required for --split test or all, which include held-out questions")
     args = parser.parse_args(argv)
     if args.failures and args.split != "development":
         parser.error("--failures is only available for the development split; the test split stays held out.")
+    if args.split != "development" and not args.confirm_held_out:
+        parser.error(f"--split {args.split} includes held-out test questions. Run it only on frozen "
+                     "configurations, and add --confirm-held-out to proceed.")
 
     from src.ingest import load_documents
 
@@ -557,17 +660,17 @@ def main(argv=None):
         details.append(f"BM25 vocabulary {len(index['bm25']['idf'])} terms")
     print(", ".join(details) + ".")
 
-    results = {}
-    for method in methods:
-        rankings, latencies_ms = rank_questions(questions, index, method)
-        results[method] = (summarize(questions, rankings), latency_stats(latencies_ms))
-
     if args.compare:
+        rankings, timing = rank_configurations(questions, index)
+        results = {config: (summarize(questions, rankings[config]), configuration_latency(timing[config]))
+                   for config in COMPARE_CONFIGS}
         print_comparison(results, args.split, index["timings"])
         if args.failures:
+            print_change_reports(results)
             print_rank_table(results)
     else:
-        summary, latency = results[args.method]
+        rankings, latencies_ms = rank_questions(questions, index, args.method)
+        summary, latency = summarize(questions, rankings), latency_stats(latencies_ms)
         print_summary(summary, args.split, show_per_question=args.failures, method=args.method, latency=latency)
         built = ", ".join(f"{name.replace('_', ' ')} {seconds:.2f} s" for name, seconds in index["timings"].items())
         print(f"One-time setup (not in query latency): {built}")

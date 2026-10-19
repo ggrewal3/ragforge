@@ -4,6 +4,7 @@ Usage:
     python -m src.retrieve                                   # interactive, dense retrieval
     python -m src.retrieve --method bm25                     # interactive, BM25 (no model needed)
     python -m src.retrieve --question "..." --method hybrid  # answer one or more questions and exit
+    python -m src.retrieve --question "..." --method hybrid --dense-weight 0.7 --bm25-weight 0.3
     python -m src.retrieve --evaluate                        # alias for: python -m src.evaluate --split development
 
 The dense functions (rank_chunks, retrieve, build_index) are unchanged from M1.
@@ -19,11 +20,13 @@ import numpy as np
 from src.bm25 import build_chunk_bm25_index, rank_bm25
 from src.chunking import DEFAULT_MAX_WORDS, chunk_documents
 from src.embeddings import DEFAULT_MODEL_NAME, embed_chunks, embed_query, load_model
-from src.fusion import DEFAULT_RRF_K, reciprocal_rank_fusion
+from src.fusion import DEFAULT_RRF_K, reciprocal_rank_fusion, validate_weights
 from src.ingest import DOCUMENTS_DIR, load_documents
 
 DEFAULT_TOP_K = 5
 METHODS = ("dense", "bm25", "hybrid")
+DEFAULT_DENSE_WEIGHT = 0.5
+DEFAULT_BM25_WEIGHT = 0.5
 
 
 # ---------------------------------------------------------------------------
@@ -182,15 +185,28 @@ def _dense_search(question, index, top_k):
     return results
 
 
-def _hybrid_search(question, index, top_k, rrf_k):
-    # Fuse the complete rankings so no relevant chunk is cut off before fusion.
+def hybrid_candidates(question, index):
+    """Complete dense and BM25 rankings for a question, the inputs to fusion.
+
+    Fusion runs on the complete rankings so no relevant chunk is cut off
+    before fusion. Computing them separately lets several fusion weightings
+    reuse one pair of rankings.
+    """
     n_chunks = len(index["chunks"])
     dense = _dense_search(question, index, n_chunks)
     lexical = rank_bm25(question, index["bm25"], index["chunks"], n_chunks)
-    fused = reciprocal_rank_fusion(
-        {"dense": [r["chunk_id"] for r in dense], "bm25": [r["chunk_id"] for r in lexical]}, k=rrf_k)
+    return dense, lexical
 
-    chunks_by_id = {chunk["chunk_id"]: chunk for chunk in index["chunks"]}
+
+def fuse_rankings(dense, lexical, chunks, top_k, rrf_k=DEFAULT_RRF_K,
+                  dense_weight=DEFAULT_DENSE_WEIGHT, bm25_weight=DEFAULT_BM25_WEIGHT):
+    """Weighted RRF over dense and BM25 result lists, returned as chunk results."""
+    weights = {"dense": dense_weight, "bm25": bm25_weight}
+    fused = reciprocal_rank_fusion(
+        {"dense": [r["chunk_id"] for r in dense], "bm25": [r["chunk_id"] for r in lexical]},
+        k=rrf_k, weights=weights)
+
+    chunks_by_id = {chunk["chunk_id"]: chunk for chunk in chunks}
     dense_scores = {r["chunk_id"]: r["score"] for r in dense}
     bm25_scores = {r["chunk_id"]: r["score"] for r in lexical}
     results = []
@@ -200,6 +216,7 @@ def _hybrid_search(question, index, top_k, rrf_k):
             rank=rank,
             score=entry["rrf_score"],
             score_type="rrf",
+            weights=weights,
             dense_rank=entry["ranks"]["dense"],
             bm25_rank=entry["ranks"]["bm25"],  # None if the chunk shares no term with the query
             dense_score=dense_scores.get(entry["id"]),
@@ -209,8 +226,13 @@ def _hybrid_search(question, index, top_k, rrf_k):
     return results
 
 
-def search(question, index, method="dense", top_k=DEFAULT_TOP_K, rrf_k=DEFAULT_RRF_K):
-    """Rank chunks for a question with the chosen method. Every result has rank, score and score_type."""
+def search(question, index, method="dense", top_k=DEFAULT_TOP_K, rrf_k=DEFAULT_RRF_K,
+           dense_weight=DEFAULT_DENSE_WEIGHT, bm25_weight=DEFAULT_BM25_WEIGHT):
+    """Rank chunks for a question with the chosen method. Every result has rank, score and score_type.
+
+    dense_weight / bm25_weight apply to hybrid only. The 0.5 / 0.5 default ranks
+    exactly like M2's unweighted RRF, with every score halved.
+    """
     if not isinstance(question, str) or not question.strip():
         raise ValueError("Question must be a non-empty string.")
     validate_method(method)
@@ -219,7 +241,9 @@ def search(question, index, method="dense", top_k=DEFAULT_TOP_K, rrf_k=DEFAULT_R
         return _dense_search(question, index, top_k)
     if method == "bm25":
         return rank_bm25(question, index["bm25"], index["chunks"], top_k)
-    return _hybrid_search(question, index, top_k, rrf_k)
+    validate_weights({"dense": dense_weight, "bm25": bm25_weight})  # fail before any retrieval work
+    dense, lexical = hybrid_candidates(question, index)
+    return fuse_rankings(dense, lexical, index["chunks"], top_k, rrf_k, dense_weight, bm25_weight)
 
 
 def format_result(result):
@@ -229,9 +253,11 @@ def format_result(result):
     elif score_type == "bm25":
         score_line = f"BM25 score: {result['score']:.4f}"
     else:
+        weights = result["weights"]
         bm25_rank = result["bm25_rank"] if result["bm25_rank"] is not None else "none (no term overlap)"
-        score_line = (f"RRF score: {result['score']:.6f} "
-                      f"(dense rank {result['dense_rank']}, BM25 rank {bm25_rank})")
+        score_line = (f"Weighted RRF score: {result['score']:.6f} "
+                      f"(weights dense {weights['dense']:.2f} / BM25 {weights['bm25']:.2f}; "
+                      f"dense rank {result['dense_rank']}, BM25 rank {bm25_rank})")
     return "\n".join([
         f"Rank: {result['rank']}",
         score_line,
@@ -251,12 +277,13 @@ def format_result(result):
 HEADERS = {
     "dense": "RAGForge — Dense Retrieval",
     "bm25": "RAGForge — BM25 Retrieval",
-    "hybrid": "RAGForge — Hybrid Retrieval (dense + BM25, Reciprocal Rank Fusion)",
+    "hybrid": "RAGForge — Hybrid Retrieval (dense + BM25, weighted Reciprocal Rank Fusion)",
 }
 
 
-def answer(question, index, method, top_k):
-    results = search(question, index, method, top_k)
+def answer(question, index, method, top_k, weights=None):
+    weights = weights or {}
+    results = search(question, index, method, top_k, **weights)
     if not results:
         print("\nNo chunk shares a term with this question (BM25 found no matches).")
     for result in results:
@@ -265,7 +292,7 @@ def answer(question, index, method, top_k):
     print()
 
 
-def interactive_loop(index, method, top_k):
+def interactive_loop(index, method, top_k, weights=None):
     while True:
         print("Enter your question (or 'exit' / 'quit'):")
         try:
@@ -278,7 +305,7 @@ def interactive_loop(index, method, top_k):
         if not question:
             print("Please enter a non-empty question.\n")
             continue
-        answer(question, index, method, top_k)
+        answer(question, index, method, top_k, weights)
 
 
 def main(argv=None):
@@ -286,6 +313,10 @@ def main(argv=None):
     parser.add_argument("--method", choices=METHODS, default="dense", help="retrieval method (default: dense)")
     parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K, help="number of chunks to return (default 5)")
     parser.add_argument("--question", action="append", help="answer this question and exit (repeatable)")
+    parser.add_argument("--dense-weight", type=float, default=None,
+                        help=f"hybrid only: dense weight in weighted RRF (default {DEFAULT_DENSE_WEIGHT})")
+    parser.add_argument("--bm25-weight", type=float, default=None,
+                        help=f"hybrid only: BM25 weight in weighted RRF (default {DEFAULT_BM25_WEIGHT})")
     parser.add_argument("--evaluate", action="store_true",
                         help="run the development-split benchmark for --method (same as: python -m src.evaluate)")
     parser.add_argument("--model", default=DEFAULT_MODEL_NAME, help="Sentence Transformers model name")
@@ -294,6 +325,22 @@ def main(argv=None):
         top_k = validate_top_k(args.top_k)
     except ValueError as error:
         parser.error(str(error))
+
+    weights = None
+    if args.dense_weight is not None or args.bm25_weight is not None:
+        if args.method != "hybrid":
+            parser.error("--dense-weight and --bm25-weight apply only to --method hybrid.")
+        if args.evaluate:
+            parser.error("--evaluate uses the default weights; use 'python -m src.evaluate --compare' "
+                         "for the weighted configurations.")
+        weights = {
+            "dense_weight": DEFAULT_DENSE_WEIGHT if args.dense_weight is None else args.dense_weight,
+            "bm25_weight": DEFAULT_BM25_WEIGHT if args.bm25_weight is None else args.bm25_weight,
+        }
+        try:
+            validate_weights({"dense": weights["dense_weight"], "bm25": weights["bm25_weight"]})
+        except ValueError as error:
+            parser.error(str(error))
 
     if args.evaluate:
         from src.evaluate import main as evaluate_main
@@ -314,10 +361,10 @@ def main(argv=None):
     if args.question:
         for question in args.question:
             print(f"\n=== Question: {question}")
-            answer(question, index, args.method, top_k)
+            answer(question, index, args.method, top_k, weights)
     else:
         print()
-        interactive_loop(index, args.method, top_k)
+        interactive_loop(index, args.method, top_k, weights)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,629 @@
+{
+  "generated_from_commit": "3039153",
+  "rrf_k": 60,
+  "top_k": 10,
+  "queries": [
+    {
+      "question": "What is the deadline for returning an overseas order?",
+      "bm25_top10": [
+        {
+          "chunk_id": "HR-104.4#0",
+          "score": 3.68541
+        },
+        {
+          "chunk_id": "FIN-201.4#0",
+          "score": 3.403207
+        },
+        {
+          "chunk_id": "SHP-732.1#0",
+          "score": 3.348198
+        },
+        {
+          "chunk_id": "SHP-732.4#0",
+          "score": 3.208218
+        },
+        {
+          "chunk_id": "FIN-203.1#0",
+          "score": 3.003978
+        },
+        {
+          "chunk_id": "SHP-732.2#0",
+          "score": 2.898535
+        },
+        {
+          "chunk_id": "REF-729.4#0",
+          "score": 2.739654
+        },
+        {
+          "chunk_id": "FIN-205.4#0",
+          "score": 1.90498
+        },
+        {
+          "chunk_id": "FIN-202.1#0",
+          "score": 1.888641
+        },
+        {
+          "chunk_id": "FIN-202.4#0",
+          "score": 1.841265
+        }
+      ],
+      "hybrid_top10": [
+        {
+          "chunk_id": "REF-729.4#0",
+          "rrf_score_unweighted": 0.031318816,
+          "dense_rank": 1,
+          "bm25_rank": 7
+        },
+        {
+          "chunk_id": "SHP-732.1#0",
+          "rrf_score_unweighted": 0.030365769,
+          "dense_rank": 9,
+          "bm25_rank": 3
+        },
+        {
+          "chunk_id": "REF-728.1#0",
+          "rrf_score_unweighted": 0.029571646,
+          "dense_rank": 3,
+          "bm25_rank": 13
+        },
+        {
+          "chunk_id": "REF-729.3#0",
+          "rrf_score_unweighted": 0.029513889,
+          "dense_rank": 4,
+          "bm25_rank": 12
+        },
+        {
+          "chunk_id": "SHP-732.2#0",
+          "rrf_score_unweighted": 0.029236022,
+          "dense_rank": 11,
+          "bm25_rank": 6
+        },
+        {
+          "chunk_id": "REF-729.1#0",
+          "rrf_score_unweighted": 0.029116045,
+          "dense_rank": 2,
+          "bm25_rank": 17
+        },
+        {
+          "chunk_id": "REF-729.2#0",
+          "rrf_score_unweighted": 0.02900988,
+          "dense_rank": 7,
+          "bm25_rank": 11
+        },
+        {
+          "chunk_id": "FIN-203.1#0",
+          "rrf_score_unweighted": 0.028898129,
+          "dense_rank": 14,
+          "bm25_rank": 5
+        },
+        {
+          "chunk_id": "SHP-732.3#0",
+          "rrf_score_unweighted": 0.028898129,
+          "dense_rank": 5,
+          "bm25_rank": 14
+        },
+        {
+          "chunk_id": "SHP-732.4#0",
+          "rrf_score_unweighted": 0.028445513,
+          "dense_rank": 18,
+          "bm25_rank": 4
+        }
+      ]
+    },
+    {
+      "question": "Can I use SMS codes for two-factor login?",
+      "bm25_top10": [
+        {
+          "chunk_id": "SEC-302.2#0",
+          "score": 11.487902
+        },
+        {
+          "chunk_id": "SEC-302.3#0",
+          "score": 7.041611
+        },
+        {
+          "chunk_id": "SEC-301.4#0",
+          "score": 4.954374
+        },
+        {
+          "chunk_id": "FIN-206.3#0",
+          "score": 3.883931
+        },
+        {
+          "chunk_id": "SEC-301.2#0",
+          "score": 3.878373
+        },
+        {
+          "chunk_id": "SEC-306.3#0",
+          "score": 3.77943
+        },
+        {
+          "chunk_id": "SEC-302.1#0",
+          "score": 3.742505
+        },
+        {
+          "chunk_id": "SEC-306.2#0",
+          "score": 2.645821
+        },
+        {
+          "chunk_id": "HR-103.2#0",
+          "score": 2.562876
+        },
+        {
+          "chunk_id": "REF-728.2#0",
+          "score": 2.490087
+        }
+      ],
+      "hybrid_top10": [
+        {
+          "chunk_id": "SEC-302.2#0",
+          "rrf_score_unweighted": 0.032786885,
+          "dense_rank": 1,
+          "bm25_rank": 1
+        },
+        {
+          "chunk_id": "SEC-302.3#0",
+          "rrf_score_unweighted": 0.032002048,
+          "dense_rank": 3,
+          "bm25_rank": 2
+        },
+        {
+          "chunk_id": "SEC-302.1#0",
+          "rrf_score_unweighted": 0.031054405,
+          "dense_rank": 2,
+          "bm25_rank": 7
+        },
+        {
+          "chunk_id": "SEC-301.4#0",
+          "rrf_score_unweighted": 0.030798389,
+          "dense_rank": 7,
+          "bm25_rank": 3
+        },
+        {
+          "chunk_id": "SEC-306.2#0",
+          "rrf_score_unweighted": 0.029857398,
+          "dense_rank": 6,
+          "bm25_rank": 8
+        },
+        {
+          "chunk_id": "SEC-301.2#0",
+          "rrf_score_unweighted": 0.02967033,
+          "dense_rank": 10,
+          "bm25_rank": 5
+        },
+        {
+          "chunk_id": "SEC-306.3#0",
+          "rrf_score_unweighted": 0.029040404,
+          "dense_rank": 12,
+          "bm25_rank": 6
+        },
+        {
+          "chunk_id": "HR-103.2#0",
+          "rrf_score_unweighted": 0.028577261,
+          "dense_rank": 11,
+          "bm25_rank": 9
+        },
+        {
+          "chunk_id": "SEC-305.1#0",
+          "rrf_score_unweighted": 0.027826087,
+          "dense_rank": 9,
+          "bm25_rank": 15
+        },
+        {
+          "chunk_id": "HR-104.1#0",
+          "rrf_score_unweighted": 0.026875902,
+          "dense_rank": 17,
+          "bm25_rank": 12
+        }
+      ]
+    },
+    {
+      "question": "What does FIN-205.3 say?",
+      "bm25_top10": [
+        {
+          "chunk_id": "FIN-205.3#0",
+          "score": 6.860333
+        },
+        {
+          "chunk_id": "FIN-205.4#0",
+          "score": 3.006542
+        },
+        {
+          "chunk_id": "FIN-205.1#0",
+          "score": 2.955408
+        },
+        {
+          "chunk_id": "FIN-205.2#0",
+          "score": 2.905984
+        },
+        {
+          "chunk_id": "FIN-202.2#0",
+          "score": 2.834872
+        }
+      ],
+      "hybrid_top10": [
+        {
+          "chunk_id": "FIN-205.1#0",
+          "rrf_score_unweighted": 0.032002048,
+          "dense_rank": 2,
+          "bm25_rank": 3
+        },
+        {
+          "chunk_id": "FIN-205.2#0",
+          "rrf_score_unweighted": 0.030776515,
+          "dense_rank": 6,
+          "bm25_rank": 4
+        },
+        {
+          "chunk_id": "FIN-205.4#0",
+          "rrf_score_unweighted": 0.029462366,
+          "dense_rank": 15,
+          "bm25_rank": 2
+        },
+        {
+          "chunk_id": "FIN-202.2#0",
+          "rrf_score_unweighted": 0.029083246,
+          "dense_rank": 13,
+          "bm25_rank": 5
+        },
+        {
+          "chunk_id": "FIN-205.3#0",
+          "rrf_score_unweighted": 0.024590164,
+          "dense_rank": 62,
+          "bm25_rank": 1
+        },
+        {
+          "chunk_id": "FIN-202.1#0",
+          "rrf_score_unweighted": 0.016393443,
+          "dense_rank": 1,
+          "bm25_rank": null
+        },
+        {
+          "chunk_id": "FIN-206.4#0",
+          "rrf_score_unweighted": 0.015873016,
+          "dense_rank": 3,
+          "bm25_rank": null
+        },
+        {
+          "chunk_id": "FIN-206.2#0",
+          "rrf_score_unweighted": 0.015625,
+          "dense_rank": 4,
+          "bm25_rank": null
+        },
+        {
+          "chunk_id": "SEC-303.2#1",
+          "rrf_score_unweighted": 0.015384615,
+          "dense_rank": 5,
+          "bm25_rank": null
+        },
+        {
+          "chunk_id": "FIN-204.2#0",
+          "rrf_score_unweighted": 0.014925373,
+          "dense_rank": 7,
+          "bm25_rank": null
+        }
+      ]
+    },
+    {
+      "question": "How many vacation days do I get per year?",
+      "bm25_top10": [
+        {
+          "chunk_id": "HR-105.1#0",
+          "score": 6.284803
+        },
+        {
+          "chunk_id": "REF-728.4#0",
+          "score": 6.181673
+        },
+        {
+          "chunk_id": "HR-101.1#0",
+          "score": 5.336808
+        },
+        {
+          "chunk_id": "HR-105.2#0",
+          "score": 4.93059
+        },
+        {
+          "chunk_id": "FIN-201.3#0",
+          "score": 4.86937
+        },
+        {
+          "chunk_id": "FIN-204.3#0",
+          "score": 4.615086
+        },
+        {
+          "chunk_id": "HR-102.2#0",
+          "score": 3.993201
+        },
+        {
+          "chunk_id": "HR-105.3#0",
+          "score": 3.680474
+        },
+        {
+          "chunk_id": "HR-101.3#0",
+          "score": 3.636359
+        },
+        {
+          "chunk_id": "FIN-205.4#0",
+          "score": 3.326349
+        }
+      ],
+      "hybrid_top10": [
+        {
+          "chunk_id": "HR-101.1#0",
+          "rrf_score_unweighted": 0.032266458,
+          "dense_rank": 1,
+          "bm25_rank": 3
+        },
+        {
+          "chunk_id": "HR-105.1#0",
+          "rrf_score_unweighted": 0.031778058,
+          "dense_rank": 5,
+          "bm25_rank": 1
+        },
+        {
+          "chunk_id": "HR-101.3#0",
+          "rrf_score_unweighted": 0.030365769,
+          "dense_rank": 3,
+          "bm25_rank": 9
+        },
+        {
+          "chunk_id": "FIN-201.3#0",
+          "rrf_score_unweighted": 0.029469122,
+          "dense_rank": 11,
+          "bm25_rank": 5
+        },
+        {
+          "chunk_id": "HR-101.4#0",
+          "rrf_score_unweighted": 0.029286927,
+          "dense_rank": 2,
+          "bm25_rank": 16
+        },
+        {
+          "chunk_id": "REF-728.4#0",
+          "rrf_score_unweighted": 0.028177225,
+          "dense_rank": 23,
+          "bm25_rank": 2
+        },
+        {
+          "chunk_id": "FIN-201.4#0",
+          "rrf_score_unweighted": 0.028138528,
+          "dense_rank": 6,
+          "bm25_rank": 17
+        },
+        {
+          "chunk_id": "FIN-204.3#0",
+          "rrf_score_unweighted": 0.027809743,
+          "dense_rank": 19,
+          "bm25_rank": 6
+        },
+        {
+          "chunk_id": "FIN-201.2#0",
+          "rrf_score_unweighted": 0.027799228,
+          "dense_rank": 10,
+          "bm25_rank": 14
+        },
+        {
+          "chunk_id": "WAR-731.1#0",
+          "rrf_score_unweighted": 0.027783137,
+          "dense_rank": 13,
+          "bm25_rank": 11
+        }
+      ]
+    },
+    {
+      "question": "Who must approve moving $50,000 of budget between two different cost centers?",
+      "bm25_top10": [
+        {
+          "chunk_id": "FIN-205.3#0",
+          "score": 14.992728
+        },
+        {
+          "chunk_id": "FIN-205.2#0",
+          "score": 12.525699
+        },
+        {
+          "chunk_id": "FIN-202.2#0",
+          "score": 8.324721
+        },
+        {
+          "chunk_id": "FIN-205.1#0",
+          "score": 7.899727
+        },
+        {
+          "chunk_id": "FIN-205.4#0",
+          "score": 7.416342
+        },
+        {
+          "chunk_id": "FIN-203.2#0",
+          "score": 6.148574
+        },
+        {
+          "chunk_id": "REF-728.4#0",
+          "score": 5.665584
+        },
+        {
+          "chunk_id": "REF-729.4#0",
+          "score": 4.512157
+        },
+        {
+          "chunk_id": "FIN-202.3#0",
+          "score": 4.472082
+        },
+        {
+          "chunk_id": "FIN-202.4#0",
+          "score": 4.210325
+        }
+      ],
+      "hybrid_top10": [
+        {
+          "chunk_id": "FIN-205.3#0",
+          "rrf_score_unweighted": 0.032786885,
+          "dense_rank": 1,
+          "bm25_rank": 1
+        },
+        {
+          "chunk_id": "FIN-205.2#0",
+          "rrf_score_unweighted": 0.032258065,
+          "dense_rank": 2,
+          "bm25_rank": 2
+        },
+        {
+          "chunk_id": "FIN-205.4#0",
+          "rrf_score_unweighted": 0.031257631,
+          "dense_rank": 3,
+          "bm25_rank": 5
+        },
+        {
+          "chunk_id": "FIN-202.2#0",
+          "rrf_score_unweighted": 0.031024531,
+          "dense_rank": 6,
+          "bm25_rank": 3
+        },
+        {
+          "chunk_id": "FIN-205.1#0",
+          "rrf_score_unweighted": 0.031009615,
+          "dense_rank": 5,
+          "bm25_rank": 4
+        },
+        {
+          "chunk_id": "FIN-202.3#0",
+          "rrf_score_unweighted": 0.030117754,
+          "dense_rank": 4,
+          "bm25_rank": 9
+        },
+        {
+          "chunk_id": "FIN-202.4#0",
+          "rrf_score_unweighted": 0.028571429,
+          "dense_rank": 10,
+          "bm25_rank": 10
+        },
+        {
+          "chunk_id": "FIN-203.2#0",
+          "rrf_score_unweighted": 0.028138528,
+          "dense_rank": 17,
+          "bm25_rank": 6
+        },
+        {
+          "chunk_id": "SHP-732.2#0",
+          "rrf_score_unweighted": 0.027046784,
+          "dense_rank": 12,
+          "bm25_rank": 16
+        },
+        {
+          "chunk_id": "FIN-206.3#0",
+          "rrf_score_unweighted": 0.026547117,
+          "dense_rank": 19,
+          "bm25_rank": 12
+        }
+      ]
+    },
+    {
+      "question": "Someone took my work laptop out of my car. What do I need to do?",
+      "bm25_top10": [
+        {
+          "chunk_id": "HR-102.4#0",
+          "score": 5.405429
+        },
+        {
+          "chunk_id": "SEC-305.3#0",
+          "score": 5.052803
+        },
+        {
+          "chunk_id": "HR-103.1#0",
+          "score": 4.968304
+        },
+        {
+          "chunk_id": "SEC-303.2#0",
+          "score": 4.65441
+        },
+        {
+          "chunk_id": "HR-101.4#0",
+          "score": 4.139457
+        },
+        {
+          "chunk_id": "SEC-301.4#0",
+          "score": 4.13738
+        },
+        {
+          "chunk_id": "HR-102.1#0",
+          "score": 3.652968
+        },
+        {
+          "chunk_id": "SEC-301.2#0",
+          "score": 3.517518
+        },
+        {
+          "chunk_id": "SEC-306.3#0",
+          "score": 3.427781
+        },
+        {
+          "chunk_id": "HR-101.3#0",
+          "score": 3.184089
+        }
+      ],
+      "hybrid_top10": [
+        {
+          "chunk_id": "HR-102.4#0",
+          "rrf_score_unweighted": 0.032266458,
+          "dense_rank": 3,
+          "bm25_rank": 1
+        },
+        {
+          "chunk_id": "SEC-305.3#0",
+          "rrf_score_unweighted": 0.031513648,
+          "dense_rank": 5,
+          "bm25_rank": 2
+        },
+        {
+          "chunk_id": "SEC-305.1#0",
+          "rrf_score_unweighted": 0.029827662,
+          "dense_rank": 2,
+          "bm25_rank": 13
+        },
+        {
+          "chunk_id": "SEC-306.3#0",
+          "rrf_score_unweighted": 0.029418127,
+          "dense_rank": 7,
+          "bm25_rank": 9
+        },
+        {
+          "chunk_id": "SEC-303.2#0",
+          "rrf_score_unweighted": 0.028958333,
+          "dense_rank": 15,
+          "bm25_rank": 4
+        },
+        {
+          "chunk_id": "SEC-305.4#0",
+          "rrf_score_unweighted": 0.028893443,
+          "dense_rank": 1,
+          "bm25_rank": 20
+        },
+        {
+          "chunk_id": "HR-102.3#0",
+          "rrf_score_unweighted": 0.028006267,
+          "dense_rank": 9,
+          "bm25_rank": 14
+        },
+        {
+          "chunk_id": "HR-103.2#0",
+          "rrf_score_unweighted": 0.026846847,
+          "dense_rank": 14,
+          "bm25_rank": 15
+        },
+        {
+          "chunk_id": "HR-103.1#0",
+          "rrf_score_unweighted": 0.026399332,
+          "dense_rank": 35,
+          "bm25_rank": 3
+        },
+        {
+          "chunk_id": "SEC-306.2#0",
+          "rrf_score_unweighted": 0.026356858,
+          "dense_rank": 13,
+          "bm25_rank": 19
+        }
+      ]
+    }
+  ]
+}

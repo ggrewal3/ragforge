@@ -14,6 +14,7 @@ The project deliberately avoids RAG frameworks (LangChain, LlamaIndex) and vecto
 - **M1** (document ingestion and dense retrieval): complete.
 - **M1.5** (evidence-level retrieval benchmark): complete.
 - **M2** (BM25, hybrid retrieval with Reciprocal Rank Fusion, method comparison): complete.
+- **M2.5** (weighted RRF, four fixed weightings compared on the development split): complete.
 - M3 and later: not implemented.
 
 ## M1 Architecture
@@ -121,8 +122,9 @@ These steps assume Python 3.11–3.13. M1 was developed and tested on Python 3.1
    python -m src.retrieve --question "What does FIN-205.3 say?" --method dense
    python -m src.retrieve --question "What does FIN-205.3 say?" --method bm25     # no model download needed
    python -m src.retrieve --question "What does FIN-205.3 say?" --method hybrid   # shows RRF score + both ranks
+   python -m src.retrieve --question "What does FIN-205.3 say?" --method hybrid --dense-weight 0.7 --bm25-weight 0.3
    ```
-   `--method` defaults to `dense`, so the M1 commands behave as before.
+   `--method` defaults to `dense`, so the M1 commands behave as before. Hybrid weights default to 0.5 / 0.5, which ranks exactly like M2.
 4. **Run the tests**
    ```bash
    python -m unittest discover -s tests -v                          # fast: no model needed
@@ -133,11 +135,12 @@ These steps assume Python 3.11–3.13. M1 was developed and tested on Python 3.1
    python -m src.evaluate --split development              # development split, dense (defaults)
    python -m src.evaluate --split development --method bm25          # one method: dense | bm25 | hybrid
    python -m src.evaluate --split development --failures   # plus per-question results and failure analysis
-   python -m src.evaluate --split development --compare    # dense vs BM25 vs hybrid, with latency
-   python -m src.evaluate --split development --compare --failures   # plus section ranks per method
-   python -m src.evaluate --split test --compare           # held-out split: final reporting only
-   python -m src.evaluate --split all                      # all 55 questions: descriptive only
+   python -m src.evaluate --split development --compare    # dense, BM25 and four RRF weightings, with latency
+   python -m src.evaluate --split development --compare --failures   # plus per-question changes and section ranks
+   python -m src.evaluate --split test --compare --confirm-held-out  # held-out split: final reporting only
+   python -m src.evaluate --split all --confirm-held-out             # all 55 questions: descriptive only
    ```
+   Since M2.5, the test and all splits refuse to run without `--confirm-held-out`, so held-out questions are never evaluated by accident.
    `python -m src.retrieve --evaluate [--method ...]` is kept as an alias for the development-split command.
 
 ## M1 Baseline Evaluation (historical)
@@ -344,7 +347,7 @@ These are observations about one corpus, one embedding model and default paramet
 
 ### Held-out test split
 
-M2 was compared on the development split only. Following the M1.5 protocol, the test split should be run once on frozen configurations (`python -m src.evaluate --split test --compare`) and reported next to the development numbers. That run has not been done yet.
+M2 was compared on the development split only. Following the M1.5 protocol, the test split should be run once on frozen configurations (`python -m src.evaluate --split test --compare --confirm-held-out`) and reported next to the development numbers. That run has not been done yet.
 
 ### M2 limitations
 
@@ -354,6 +357,120 @@ M2 was compared on the development split only. Following the M1.5 protocol, the 
 - **Simple tokenizer.** Only plurals are stemmed, there are no synonyms, and the identifier pattern is fixed.
 - **Untuned defaults.** k1, b and the RRF constant were not tuned, which keeps the comparison fair to the M1 baseline. Any tuning must use the development split only.
 - **Latency** comes from a single CPU run on a 92-chunk corpus. The ordering (BM25 much faster than dense) is meaningful; the exact numbers are not.
+
+## M2.5 — Weighted Reciprocal Rank Fusion
+
+### Why equal-weight RRF underperformed dense retrieval
+
+Equal RRF gives BM25 the same vote as dense retrieval on every question. On paraphrased questions, BM25's ranking mostly reflects incidental shared words like "work" or "need", yet it counts as much as the dense ranking. A chunk that BM25 does not match at all gets only half the possible score. In M2 this cost six questions that dense alone had right at rank 1, all of them paraphrases except one numerical question.
+
+RRF also cannot use BM25's large score margins. It sees only ranks, so BM25 being far more confident about FIN-205.3 than about anything else (6.86 vs 3.01) counts no more than a narrow lead. Rank-only fusion is what makes RRF robust to the two incompatible score scales, and this is the price.
+
+### What weighted RRF changes
+
+```
+WeightedRRF(d) = w_dense / (k + rank_dense(d)) + w_bm25 / (k + rank_bm25(d))      k = 60, ranks 1-based
+```
+
+A retriever that did not return the chunk contributes 0. The weights must be finite, between 0 and 1, sum to 1 (within 1e-9) and not both be zero; anything else is rejected with an error. Equal weights scale every score by the same constant, so 0.5 / 0.5 ranks exactly like M2's unweighted RRF, with every score halved. That is the default, so M2 hybrid results are unchanged, and a model test checks this against a fixture recorded before M2.5.
+
+Only four configurations were evaluated, all fixed in advance, with no weight search and no change to k:
+
+| Configuration | Dense weight | BM25 weight |
+|---|---|---|
+| Equal RRF (M2) | 0.5 | 0.5 |
+| Weighted RRF A | 0.6 | 0.4 |
+| Weighted RRF B | 0.7 | 0.3 |
+| Weighted RRF C | 0.8 | 0.2 |
+
+```bash
+python -m src.evaluate --split development --compare              # all six configurations
+python -m src.evaluate --split development --compare --failures   # plus per-question changes and section ranks
+python -m src.retrieve --question "What does FIN-205.3 say?" --method hybrid --dense-weight 0.7 --bm25-weight 0.3
+```
+
+Each development question is retrieved once by dense and once by BM25, and all four fusions reuse those two rankings.
+
+### Results on the development split (observed, 37 questions)
+
+| Metric | Dense | BM25 | RRF .5/.5 | RRF .6/.4 | RRF .7/.3 | RRF .8/.2 |
+|---|---|---|---|---|---|---|
+| Document Recall@5 | 1.000 | 0.959 | 0.986 | 0.986 | 0.986 | 0.986 |
+| Section Recall@1 | 0.752 | 0.631 | 0.712 | 0.793 | 0.766 | 0.793 |
+| Section Hit@1 | 0.811 (30) | 0.676 (25) | 0.757 (28) | 0.838 (31) | 0.811 (30) | 0.838 (31) |
+| Section Recall@5 | 0.964 | 0.901 | 0.964 | 0.977 | 0.950 | 0.950 |
+| Section MRR@5 | 0.887 | 0.782 | 0.842 | 0.897 | 0.881 | 0.901 |
+| Total query ms, mean | 4.31 | 0.09 | 4.56 | 4.51 | 4.51 | 4.52 |
+
+The numbers in parentheses are questions with a relevant section at rank 1.
+
+- **Latency** is split into three parts:
+  - retrieval: dense, BM25, or both for hybrid, about 4.40 ms;
+  - fusion only: 0.11–0.16 ms, which includes building result records for all 92 chunks;
+  - total: retrieval plus fusion.
+
+  It excludes model loading (5.2 s in this run), chunk embedding (0.36 s), building the BM25 index and one untimed warm-up query. It comes from a single CPU run.
+- **Metrics:** the Dense, BM25 and RRF .5/.5 columns reproduce the M2 numbers exactly.
+
+| Section Hit@1 by category | N | Dense | BM25 | .5/.5 | .6/.4 | .7/.3 | .8/.2 |
+|---|---|---|---|---|---|---|---|
+| exact_identifier | 7 | 0.429 | 1.000 | 0.857 | 0.857 | 0.857 | 0.857 |
+| semantic_paraphrase | 8 | 0.875 | 0.125 | 0.250 | 0.500 | 0.500 | 0.625 |
+| similar_policy_disambiguation | 8 | 0.750 | 0.625 | 0.875 | 0.875 | 0.750 | 0.750 |
+| multi_section | 3 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+
+Section MRR@5 on paraphrases rises steadily with the dense weight: 0.494, 0.688, 0.698, 0.792 (dense alone: 0.917).
+
+### Improvements and regressions per question
+
+A question counts as improved or regressed when its Section Hit@1, Recall@5 or MRR@5 changes.
+
+| Configuration | vs Dense | vs RRF .5/.5 |
+|---|---|---|
+| RRF .5/.5 | improved Q015 Q016 Q020 Q021 Q036 Q049; regressed Q008 Q010 Q012 Q013 Q041 Q047 | — |
+| RRF .6/.4 | improved Q015 Q016 Q020 Q021 Q036 Q049; regressed Q010 Q013 Q047 | improved Q008 Q010 Q012 Q013 Q041 Q047; **no regressions** |
+| RRF .7/.3 | improved Q015 Q016 Q021 Q049; regressed Q010 Q013 Q047 | improved the same 6; regressed Q020 Q036 |
+| RRF .8/.2 | improved Q015 Q016 Q021 Q049; regressed Q010 Q047 | improved the same 6; regressed Q020 Q036 |
+
+Rank of each relevant section (chunk rank in the full ranking; "-" means BM25 never returned it):
+
+| Question | Section | Dense | BM25 | .5/.5 | .6/.4 | .7/.3 | .8/.2 |
+|---|---|---|---|---|---|---|---|
+| Q020 FIN-205.3 | FIN-205.3 | 62 | 1 | 5 | 5 | 9 | 22 |
+| Q010 stolen laptop | SEC-305.4 | 1 | 20 | 6 | 4 | 4 | 3 |
+| | SEC-304.2 | 4 | - | 21 | 21 | 15 | 11 |
+| Q015 SEC-301.4 | SEC-301.4 | 2 | 1 | 1 | 1 | 1 | 1 |
+| Q016 HR-103.3 | HR-103.3 | 2 | 1 | 1 | 1 | 1 | 1 |
+| Q021 SEC-306.2 | SEC-306.2 | 2 | 1 | 1 | 1 | 1 | 1 |
+| Q033 refund deadlines | REF-728.1 | 3 | 2 | 2 | 2 | 2 | 3 |
+| | REF-729.1 | 2 | 5 | 3 | 3 | 3 | 2 |
+| Q036 store credit | REF-729.3 | 2 | 2 | 1 | 1 | 2 | 2 |
+| Q049 warranty postage | WAR-731.3 | 3 | 4 | 2 | 2 | 2 | 2 |
+| Q051 purchasing | FIN-202.2 | 3 | 20 | 8 | 8 | 6 | 4 |
+| | FIN-202.3 | 7 | 6 | 5 | 5 | 5 | 7 |
+| | FIN-202.4 | 1 | 1 | 1 | 1 | 1 | 1 |
+
+What the per-question results show:
+
+- **Paraphrases improve as the dense weight rises, and identifiers suffer once it is high.** Q015, Q016 and Q021 stay at rank 1 under every weighting, because dense already ranks them 2nd. Q020, where dense ranks the answer 62nd, gets worse as the BM25 weight shrinks: rank 5, then 9, then 22. Q036 loses rank 1 from 0.7 / 0.3 onwards.
+- **Q010 is never fixed.** SEC-304.2 has no BM25 match, so under 0.8 / 0.2 it scores 0.8/64 = 0.0125. That is still less than a chunk ranked 10th by both retrievers (1/70 = 0.0143). While BM25 has any weight, missing from its list is a penalty.
+- **Q033 and Q051 are unchanged in their metrics** under every weighting. Q051's FIN-202.3 and FIN-202.2 trade places in and out of the top 5.
+- **Hit@1 is not monotonic in the weight.** 0.6 / 0.4 and 0.8 / 0.2 both reach 31/37, while 0.7 / 0.3 reaches 30/37. This is a sign of how small the differences are, not of a real optimum at 0.6 or 0.8.
+
+### Recommendation (cautious)
+
+- **Keep dense as the default method.** The best weighted configurations beat it by one question on Hit@1 (31 vs 30 of 37). That is within noise for this set, and each of them still regresses 2–3 paraphrases that dense gets right.
+- **If a hybrid is kept, 0.6 / 0.4 is better supported than 0.5 / 0.5.** It improved 6 questions over equal RRF and regressed none, it has the best Recall@5 (0.977), and it keeps every identifier gain. 0.8 / 0.2 has a slightly higher MRR (0.901 vs 0.897) but gives up Q020 and Q036.
+- **No defaults were changed.** Dense remains the default method and 0.5 / 0.5 the default hybrid weighting. Any choice should be confirmed once on the held-out test split, and that run has not been done.
+
+### Limitations of choosing weights on 37 questions
+
+- One question is worth 0.027 of Hit@1. Every difference among the four weightings is three questions or fewer.
+- Choosing the best of four configurations on the same development set makes the winner's development score optimistic. The held-out test split exists to correct for this.
+- The best weighting depends on the question mix (here 7 identifier questions against 8 paraphrases) and would shift with a different corpus or set of questions.
+- Weighting cannot fix the core limitation: a single global weight cannot be right for both kinds of question. Whether reranking (M3) does better is a separate experiment.
+
+**Also fixed in M2.5:** `bm25_scores` returned NaN for chunks without the query term when `k1 = 0`, because 0/0 is undefined. Now only chunks containing the term are scored. Scores at the default k1 = 1.5 are bit-for-bit unchanged, as the BM25 regression test confirms.
 
 ## Future Milestones (not implemented)
 
