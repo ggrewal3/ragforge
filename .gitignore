@@ -16,9 +16,13 @@ __pycache__/
 .vscode/
 .idea/
 
-# Secrets
+# Secrets (the template .env.example is tracked)
 .env
 .env.*
+!.env.example
+
+# Generation run outputs (model text, token usage); keep locally or commit deliberately
+results/
 
 # Model weights, checkpoints, and local caches (downloaded models live in the
 # Hugging Face cache under ~/.cache/huggingface, outside the repo)
