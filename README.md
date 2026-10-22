@@ -17,7 +17,8 @@ The project deliberately avoids RAG frameworks (LangChain, LlamaIndex) and vecto
 - **M2.5** (weighted RRF, four fixed weightings compared on the development split): complete.
 - **M3** (cross-encoder reranking of dense and hybrid candidates, development comparison): complete.
 - **M4** (grounded answers with Gemini: structured output, citation-ID validation, dry-run and opt-in live evaluation): implemented and tested offline. No live Gemini run yet (see [M4](#m4--grounded-generation-with-gemini)).
-- M5 and later: not implemented.
+- **M5** (claim extraction, claim-evidence verification, one bounded revision, verification benchmark): implemented and tested offline. No live Gemini run yet, so no claim that it improves accuracy (see [M5](#m5--claim-level-verification-and-self-correction)).
+- M6 and later: not implemented.
 
 ## M1 Architecture
 
@@ -60,13 +61,19 @@ src/llm.py                           Gemini adapter: config, retries, errors, to
 src/prompts.py                       grounded prompt and response JSON schema (M4)
 src/citations.py                     structured-output parsing and citation-ID validation (M4)
 src/rag.py                           retrieve -> prompt -> Gemini -> validate pipeline and CLI (M4)
-src/evaluate_generation.py           dry-run / live generation evaluation and manual review (M4)
+src/evaluate_generation.py           dry-run / live generation evaluation and manual review (M4; --verify for M5)
+src/claims.py                        atomic claim extraction and strict claim validation (M5)
+src/verification.py                  verifier interface, verdict validation, Gemini and mock verifiers (M5)
+src/self_correction.py               verify -> revise once -> re-verify -> accept or abstain (M5)
+src/evaluate_verification.py         claim-verification benchmark runner and scoring (M5)
+data/evaluations/verification_claims.json  40 hand-labeled claim-evidence examples (M5, draft labels)
 src/retrieve.py                      dense retrieval, search() for all methods, retrieval CLI
 src/evaluate.py                      benchmark: metrics, splits, failure analysis, method comparisons
 tests/test_retrieval.py              M1 / M1.5 tests
 tests/test_hybrid.py                 M2 / M2.5 tests (BM25, RRF, retrieval interface)
 tests/test_rerank.py                 M3 tests (mock cross-encoder; real model opt-in)
 tests/test_generation.py             M4 tests (fake Gemini; live API opt-in)
+tests/test_verification.py           M5 tests (routed fake LLM, fake SDK; no network)
 .env.example                         template for GEMINI_API_KEY / GEMINI_MODEL (copy to .env)
 tests/fixtures/dense_regression.json dense top-5 results recorded before M2, for regression checks
 tests/fixtures/hybrid_regression.json BM25 and default-hybrid top-10 recorded before M2.5
@@ -809,11 +816,209 @@ Costs below are paid-tier prices from the [pricing page](https://ai.google.dev/g
 
 ### M4 and M5
 
-M4 establishes a generation baseline and checks the reply's form: that it is valid JSON with the right fields, and that it cites only sections it was given. M5 will check the substance: whether each claim in the answer is actually supported by the text of the sections it cites.
+M4 establishes a generation baseline and checks the reply's form: that it is valid JSON with the right fields, and that it cites only sections it was given. M5 checks the substance: whether each claim in the answer is actually supported by the text of the evidence it was generated from.
+
+## M5 — Claim-Level Verification and Self-Correction
+
+M4 checks that an answer cites sections it was shown. M5 checks whether the text of those sections actually says what the answer claims. It is **off by default** (`--verify`) until it has been evaluated live. The M4 path is unchanged and remains the baseline.
+
+```
+M4 answer (citation IDs valid)
+   ↓
+Claim extraction       src/claims.py           answer -> atomic claims C1..Cn (strict JSON, faithfulness checks)
+   ↓
+Claim verification     src/verification.py     each claim vs the SAME evidence snapshot -> verdict + section IDs
+   ├─ all SUPPORTED ────────────────────────────→ return the original answer
+   └─ any CONTRADICTED / INSUFFICIENT_EVIDENCE
+        ↓
+     One revision      src/self_correction.py  question + evidence + answer + claims + verdicts -> M4 schema
+        ↓  structure check, citation-ID check (M4 code, reused)
+     Extract + verify again (fresh claims, fresh verdicts)
+        ├─ all SUPPORTED → return the revision
+        └─ otherwise     → abstain (the rejected text is never the answer)
+```
+
+There is no loop: the revision step is written out once, and a test checks that a verifier which keeps failing produces exactly five LLM calls (extract, verify, revise, extract, verify). The only retries are the GeminiClient's bounded transient-error retries (at most 2 per request).
+
+### Claim extraction
+
+[src/claims.py](src/claims.py) asks Gemini to split the answer into self-contained claims. Conditions and exceptions stay attached to their rule ("15 percent fee unless defective" is one claim). Negative statements count as claims. Greetings, citations and remarks about what the evidence covers are skipped. The extractor sees the question (to resolve "you" or "they") but never the evidence, so it cannot "fix" a claim. Its output is validated strictly, and any failure means the answer is not verified:
+
+- the schema must be exactly `{"claims": [{"claim_id", "text"}]}`, with IDs C1..Cn in order and non-empty, unique texts;
+- an empty claim list for a substantive answer fails (`empty_claims`);
+- a claim containing a number that the answer and question never mention fails (`extraction_drift`: the extractor changed content);
+- a number in the answer that no claim carries fails (`extraction_incomplete`: a quantity would go unchecked). Section IDs such as FIN-205.3 are ignored by this check.
+
+The numeric check catches numeric drift only. A dropped "not" or a changed approver would pass it (see limitations).
+
+### Verifier interface and verdicts
+
+Any object with `name` and `verify(claims, evidence) -> StageOutput` is a verifier. Unavailability is signalled with `LLMError` (API verifiers) or `VerifierUnavailable` (local models, for M6). Validation is done by the orchestrator, not the verifier, so a new implementation cannot skip it:
+
+| Verdict | Meaning |
+|---|---|
+| `SUPPORTED` | the supplied evidence entails the claim, including its numbers, conditions and exceptions |
+| `CONTRADICTED` | the supplied evidence directly conflicts with the claim |
+| `INSUFFICIENT_EVIDENCE` | the evidence does not settle it; **missing evidence is never a contradiction** |
+
+Each result records the claim ID, the claim text (taken from extraction, never from the verifier), the verdict, the deciding section IDs, a one-sentence explanation, a status, and `support_cited` (whether a supporting section is among the answer's citations; informational only).
+
+Verifier output is rejected (`invalid_verifier_output`) if:
+
+- a claim is missing, duplicated or unknown;
+- a verdict is outside the three values (`"supported"` and `"PARTIALLY_SUPPORTED"` are rejected);
+- any evidence ID was not supplied (exact match: `ref-729.1` and `REF-729.1#0` are invented IDs);
+- a SUPPORTED or CONTRADICTED verdict names no evidence section;
+- the explanation is empty.
+
+| Implementation | Use |
+|---|---|
+| `GeminiVerifier` | one batched request per answer, same model as generation by default |
+| `MockVerifier` | deterministic lexical heuristic (word overlap + numbers) for offline runs; ignores negation and conditions. **Not a verifier.** |
+| M6 local NLI model | will implement the same interface; no orchestration changes needed |
+
+### Evidence handling
+
+- Verification and revision use the M4 result's `sources`: the exact chunks the answer was generated from, frozen into read-only mappings. Writing to them raises `TypeError`.
+- A SHA-256 fingerprint of the evidence is recorded and re-checked at the end of every run.
+- Revision never retrieves; a test spies on `search()` and asserts exactly one call per question.
+- A valid citation is not support. A test has the M4 citation check `pass` while the verifier finds the claim unsupported, and the result is an abstention.
+
+### Revision and abstention policy
+
+- **Trigger:** any claim not SUPPORTED. Every extracted claim is treated as material; there is no "immaterial" flag a model could use to wave a claim through.
+- **The revision prompt contains:** the question, the same evidence, the original answer, every claim with its verdict, evidence IDs and explanation.
+- **The revision is told to:** correct contradictions, remove unsupported statements, keep supported content with its conditions, add nothing new, cite exactly, and abstain if nothing is left. It is also told the checks may be wrong and to follow the evidence.
+- **The revision must pass** `parse_answer()` and `validate_citations()` (M4 code) before it is extracted and verified again from scratch. The original verdicts are never reused.
+- **Abstentions:**
+  - If the M4 answer or the revision abstains without citations, its own abstention text is returned.
+  - If it abstains *with* citations (a possible hidden partial answer), or the revision still fails verification, a fixed message is returned instead.
+  - Rejected text stays in `verification.passes` for review but never becomes `answer`.
+
+### Outcomes (fail closed)
+
+| `verification.outcome` | Final `status` | Answer returned |
+|---|---|---|
+| `accepted_original` | `verified_answer` | original |
+| `accepted_revision` | `verified_answer` | revision |
+| `abstained` (M4 or revision abstained) | `abstained` | abstention text |
+| `revision_unsupported` | `abstained` | fixed abstention message |
+| `extraction_failure` | `verification_failed` | none |
+| `verification_api_failure` | `verification_failed` | none |
+| `invalid_verifier_output` | `verification_failed` | none |
+| `citation_failure` (revision) | `verification_failed` | none |
+| `revision_api_failure`, `revision_invalid_output` | `verification_failed` | none |
+| `citation_failure` (M4 answer) / `generation_failure` | M4 status (`citation_failure`, `llm_error`, ...) | none |
+
+- `error.stage` (`original` / `revision`) and `error.step` (`extraction` / `verification` / `revision` / `generation`) say where a failure happened.
+- `error.api_error` separates availability failures from invalid outputs.
+- No path labels a claim SUPPORTED without a completed, validated verification.
+- Error messages come from the M4 adapter, which redacts the API key. A test feeds a 503 containing the key through the real `GeminiClient` and checks the key is absent from the result.
+
+### CLI
+
+```bash
+python -m src.rag --question "How long do international customers have to request refunds?"            # M4 baseline
+python -m src.rag --question "How long do international customers have to request refunds?" --verify   # M5
+python -m src.rag --question "..." --verify --json                     # full trace: claims, verdicts, revision
+python -m src.rag --question "..." --verify --verifier mock            # Gemini generation, offline mock verifier
+```
+
+- **`--verify` prints:** the user-facing answer (or "Answer withheld"), the outcome, a claim-by-claim trace marked "diagnostic, not the answer" when rejected, added latency, LLM calls, tokens and cost.
+- **Exit code:** 0 for `verified_answer` or `abstained`, 1 otherwise.
+- **Cost:** a verified question makes 3 Gemini requests when the original answer passes (generate, extract, verify) and at most 6 when it needs revision.
+
+### Verification benchmark
+
+[data/evaluations/verification_claims.json](data/evaluations/verification_claims.json) holds 40 claim-evidence pairs written from the policy documents: 15 SUPPORTED, 16 CONTRADICTED and 9 INSUFFICIENT_EVIDENCE.
+
+**Phenomena covered** (an example can cover several):
+- numerical thresholds (20)
+- similar-but-distinct policies (12), e.g. domestic vs international, standard vs service-account passwords, P1 vs P2
+- missing details (8)
+- negations (8)
+- policy exceptions (8)
+- multiple conditions (7)
+
+Some pairs share a claim and vary the evidence. V003/V004 give the same claim with only the domestic rule (INSUFFICIENT_EVIDENCE) or with the international rule too (CONTRADICTED).
+
+**Label integrity:**
+- Every SUPPORTED/CONTRADICTED label carries a `decisive_text` that must be an exact substring of its labeled section; loading fails otherwise.
+- Labels live in this file; predictions go to `results/verification/*.jsonl` and contain no labels.
+- Scoring joins the two by `example_id`.
+- No verifier output was used to write or adjust labels.
+- The benchmark does not use the retrieval questions or the held-out test split.
+
+**Label status: draft.** The labels were written while implementing M5, with an AI coding assistant, from the policy text. They have not been independently reviewed and should be checked by a person before being treated as ground truth.
+
+```bash
+python -m src.evaluate_verification --dry-run                     # MockVerifier, all 40, free
+python -m src.evaluate_verification --live                        # Gemini, 6 examples (2 per label)
+python -m src.evaluate_verification --live --max-examples 12
+python -m src.evaluate_verification --live --all --confirm-all    # all 40 (40 requests)
+python -m src.evaluate_verification --summarize results/verification/<run>.jsonl
+```
+
+**Reported:**
+- completion rate;
+- API failures and invalid outputs, kept separate from wrong verdicts;
+- accuracy over completed predictions, and strict accuracy (failures count as wrong);
+- the confusion matrix and per-verdict precision and recall;
+- per-phenomenon accuracy;
+- **false SUPPORTED**: the error that lets a hallucination through;
+- contradiction/insufficient confusions, and correct verdicts that cite the wrong section.
+
+The same file and runner are meant for the M6 comparison.
+
+**MockVerifier floor (heuristic, not model accuracy):** 0.575 accuracy, with 12 false SUPPORTED out of 25 non-supported claims, nearly all on similar policies, negations and exceptions. This shows the examples separate a word-overlap heuristic from real verification. It says nothing about Gemini.
+
+### Generation evaluation with verification
+
+```bash
+python -m src.evaluate_generation --dry-run --verify        # mocks for every component; free
+python -m src.evaluate_generation --live --verify           # 3 dev questions, up to 18 requests
+python -m src.evaluate_generation --live --verify --max-questions 8
+```
+
+- **Row format:** each row keeps the M4 baseline fields unchanged, so M4 metrics stay directly comparable, and adds the full verified result under `verified`.
+- **Added metrics:**
+  - extraction success rate and verification completion rate;
+  - verdict distributions for the original and revised passes;
+  - originals accepted, revisions attempted and successful, abstentions;
+  - API failures vs invalid outputs;
+  - added latency, LLM calls, tokens and cost.
+- **Claim-level accuracy** comes from the benchmark above, not from this run.
+- **Dry run:**
+  - the mock generator appends an unsupported sentence to every second grounded answer, so the revision path runs;
+  - a sentence-split extractor, the lexical verifier and a scripted reviser complete the pipeline;
+  - result over 37 dev questions: 11 originals accepted, 6 revised and accepted, 4 abstentions, 8 citation failures, 8 generation failures, with the M4 baseline counts unchanged (17 / 4 / 8 / 4 / 4).
+  - These numbers test the plumbing only.
+
+### What has and has not been validated
+
+| | Status |
+|---|---|
+| Extraction, verification, revision, abstention, failure handling | implemented, offline-tested (55 tests in `tests/test_verification.py`) |
+| Gemini prompts and parsers through `GeminiClient` | offline-tested with fake LLM responses and a fake SDK (503 retries included) |
+| Benchmark runner and scoring | offline-tested; MockVerifier floor measured |
+| Gemini verifier accuracy on the benchmark | **not measured** (no live run) |
+| Whether verification improves answer accuracy over M4 | **not measured**; no improvement is claimed |
+| Prompt wording for extraction, verification and revision | **not validated live**; may need iteration |
+
+### M5 limitations
+
+- **The verifier is an LLM and can be wrong.** It can accept a subtly wrong claim (false SUPPORTED) or reject a correct one, which causes needless revisions or abstentions. The benchmark measures this, but only on 40 examples.
+- **The same model judges its own output by default.** Generator, extractor, verifier and reviser share one model and may share blind spots. A different `verifier=` can be injected (and M6 will add a local one).
+- **Extraction faithfulness is only partly checked.** Numbers are compared; dropped negations, changed approvers or merged conditions are not detected locally.
+- **Strictness costs answers.** Any unsupported claim, including a harmless one, triggers a revision. Any extraction or verifier hiccup withholds the answer. The abstention rate will rise compared with M4; how much is unmeasured.
+- **Latency and cost roughly triple** for verified questions (up to six times with a revision), plus the per-request retries.
+- **Abstention texts are not verified.** An abstention without citations is returned as written.
+- **Manual review (`--review`) still labels the M4 baseline answer** in verified runs, not the final verified answer.
+- **Labels are a draft**, written by one author with AI assistance, and the benchmark is small: one example moves accuracy by 0.025.
+- **Prompt injection is out of scope (M7).** M5 blocks are escaped like M4's, which is hygiene, not a defense.
 
 ## Future Milestones (not implemented)
 
-- **M5**: Hallucination detection and evidence verification
 - **M6**: Fine-tuning a small transformer-based evidence verifier
 - **M7**: Prompt-injection attacks and defenses
 - **M8**: Automated evaluation and ablation studies

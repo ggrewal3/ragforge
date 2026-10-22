@@ -7,6 +7,8 @@ Usage:
     python -m src.evaluate_generation --live --all --confirm-all     # all 37 dev questions (costs money)
     python -m src.evaluate_generation --review results/generation/<run>.jsonl            # label answers
     python -m src.evaluate_generation --summarize-review results/generation/<run>.jsonl  # count labels
+    python -m src.evaluate_generation --dry-run --verify             # M5 pipeline, all offline mocks
+    python -m src.evaluate_generation --live --verify                # M5 live smoke test: 3 questions
 
 Only development questions are ever loaded: this module has no option to
 evaluate the held-out test split.
@@ -22,6 +24,15 @@ What the metrics do and do not say:
     matching and no LLM judge is used in M4.
   * Citing a gold-labeled section is shown for information only; it is not
     correctness either.
+
+--verify (M5) runs each answer through claim verification and at most one
+revision. The M4 fields of every row stay the baseline result, so the M4
+metrics are unchanged and directly comparable; the verified result is added
+under "verified". Verification metrics keep API availability failures apart
+from invalid outputs and verdicts. In a dry run every component is a mock
+(sentence-split extractor, lexical verifier, scripted reviser), so the numbers
+test the plumbing only. Claim-level verifier accuracy comes from
+src/evaluate_verification.py, not from this module.
 """
 
 import argparse
@@ -37,6 +48,7 @@ from src.evaluate import CATEGORIES, filter_split, load_evaluation_questions
 from src.ingest import PROJECT_ROOT
 from src.llm import PRICING_SOURCE, LLMRateLimitError, LLMResponse, load_env_file, sampling_warnings
 from src.rag import DEFAULT_EVIDENCE_K, RAG_METHOD, answer_question, retrieval_options
+from src.self_correction import OUTCOMES, answer_question_verified
 
 RESULTS_DIR = PROJECT_ROOT / "results" / "generation"
 DEFAULT_LIVE_QUESTIONS = 3
@@ -60,14 +72,21 @@ class MockGemini:
     grounded answers, abstentions, unknown and duplicate citations, missing
     citations, malformed JSON and an API failure. Its outputs are synthetic,
     so dry-run metrics test the plumbing, not Gemini.
+
+    With inject_unsupported=True (used by --dry-run --verify), every second
+    grounded answer gets an extra sentence that no evidence supports, so the
+    M5 revision path is exercised. Statuses and citations are unchanged.
     """
 
     model = "dry-run-mock"
     SCENARIOS = ("grounded", "grounded", "abstain", "unknown_citation", "grounded",
                  "malformed_json", "duplicate_citation", "missing_citation", "api_error")
+    UNSUPPORTED_SENTENCE = "Exceptions are granted automatically by the regional ombudsman."
 
-    def __init__(self):
+    def __init__(self, inject_unsupported=False):
         self.calls = 0
+        self.grounded = 0
+        self.inject_unsupported = inject_unsupported
 
     def generate(self, system_instruction, user_prompt, response_json_schema):
         scenario = self.SCENARIOS[self.calls % len(self.SCENARIOS)]
@@ -77,6 +96,10 @@ class MockGemini:
         first_sentence = first_text.split(". ")[0].rstrip(".") + "."
         if scenario == "api_error":
             raise LLMRateLimitError("Simulated rate limit (dry run).")
+        if scenario == "grounded":
+            self.grounded += 1
+            if self.inject_unsupported and self.grounded % 2 == 0:
+                first_sentence += " " + self.UNSUPPORTED_SENTENCE
         payload = {
             "grounded": {"answer": f"According to the policy: {first_sentence}", "citations": sections[:1],
                          "abstained": False},
@@ -94,6 +117,40 @@ class MockGemini:
         return LLMResponse(text=text, model=self.model, latency_s=0.0, attempts=1, finish_reason="STOP",
                            usage={"input_tokens": input_tokens, "output_tokens": len(text) // 4,
                                   "thinking_tokens": 0, "total_tokens": input_tokens + len(text) // 4})
+
+
+class MockReviser:
+    """Deterministic stand-in for the revision request (dry runs only). Makes no network calls.
+
+    It keeps the claims the verifier marked SUPPORTED, cites the sections that
+    supported them, and abstains when none were supported. Its output is
+    re-verified like any revision.
+    """
+
+    model = "dry-run-mock-reviser"
+
+    def generate(self, system_instruction, user_prompt, response_json_schema):
+        checks = re.findall(r'<claim_check claim_id="C\d+" verdict="(\w+)" evidence="([^"]*)">\nClaim: (.*)\n',
+                            user_prompt)
+        kept = [(evidence, claim) for verdict, evidence, claim in checks if verdict == "SUPPORTED"]
+        if kept:
+            citations = list(dict.fromkeys(s for evidence, _ in kept for s in evidence.split(",") if s))
+            payload = {"answer": " ".join(claim for _, claim in kept), "citations": citations, "abstained": False}
+        else:
+            payload = {"answer": "The supplied evidence does not support an answer to this question.",
+                       "citations": [], "abstained": True}
+        text = json.dumps(payload)
+        return LLMResponse(text=text, model=self.model, latency_s=0.0, attempts=1, finish_reason="STOP",
+                           usage={"input_tokens": len(user_prompt) // 4, "output_tokens": len(text) // 4,
+                                  "thinking_tokens": 0, "total_tokens": (len(user_prompt) + len(text)) // 4})
+
+
+def dry_run_verification():
+    """Offline extractor, verifier and reviser for --dry-run --verify."""
+    from src.claims import SentenceClaimExtractor
+    from src.verification import MockVerifier
+
+    return {"extractor": SentenceClaimExtractor(), "verifier": MockVerifier(), "reviser": MockReviser()}
 
 
 # ---------------------------------------------------------------------------
@@ -124,16 +181,28 @@ def select_questions(questions, max_questions=None):
 
 
 def run_generation_eval(questions, index, llm, out_path, method=RAG_METHOD, evidence_k=DEFAULT_EVIDENCE_K,
-                        dense_weight=None, bm25_weight=None, progress=print):
-    """Answer each question, appending one JSON line per result. Returns (rows, interrupted)."""
+                        dense_weight=None, bm25_weight=None, progress=print, verify=None):
+    """Answer each question, appending one JSON line per result. Returns (rows, interrupted).
+
+    `verify` (M5) is None for the M4 baseline, or a dict with optional
+    "extractor", "verifier" and "reviser" (missing ones default to Gemini via
+    `llm`). Verified rows keep the M4 baseline fields and add "verified".
+    """
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     rows, interrupted = [], False
     with out_path.open("w", encoding="utf-8") as handle:
         try:
             for number, question in enumerate(questions, start=1):
-                result = answer_question(question["question"], index, llm, method, evidence_k, dense_weight,
-                                         bm25_weight)
+                verified = None
+                if verify is None:
+                    result = answer_question(question["question"], index, llm, method, evidence_k, dense_weight,
+                                             bm25_weight)
+                else:
+                    verified = answer_question_verified(question["question"], index, llm, method=method,
+                                                        evidence_k=evidence_k, dense_weight=dense_weight,
+                                                        bm25_weight=bm25_weight, **verify)
+                    result = verified.pop("baseline")
                 gold = set(question["relevant_section_ids"])
                 row = {
                     "question_id": question["question_id"],
@@ -143,10 +212,13 @@ def run_generation_eval(questions, index, llm, out_path, method=RAG_METHOD, evid
                     **result,
                     "manual_review": {"label": None, "notes": ""},
                 }
+                if verified is not None:
+                    row["verified"] = verified
                 rows.append(row)
                 handle.write(json.dumps(row) + "\n")
                 handle.flush()
-                progress(f"  [{number}/{len(questions)}] {question['question_id']} {result['status']}")
+                progress(f"  [{number}/{len(questions)}] {question['question_id']} {result['status']}"
+                         + (f" -> {verified['verification']['outcome']}" if verified else ""))
         except KeyboardInterrupt:
             interrupted = True
             progress(f"\nInterrupted after {len(rows)} of {len(questions)} questions; partial results kept.")
@@ -202,6 +274,96 @@ def summarize_generation(rows):
         "manual_review": review_counts(rows),
         "semantic_citation_support": "not evaluated (M5)",
     }
+
+
+def summarize_verification(rows):
+    """M5 metrics over rows that carry a "verified" result. Rates are None when their denominator is zero."""
+    verified = [r["verified"] for r in rows if "verified" in r]
+    trace = [v["verification"] for v in verified]
+    passes = [p for t in trace for p in t["passes"]]
+    extracted = [p for p in passes if p["extraction"]["status"] == "ok"]
+    completed = [p for p in extracted if p["verification"]["status"] == "complete"]
+
+    def verdicts(stage):
+        counts = {"SUPPORTED": 0, "CONTRADICTED": 0, "INSUFFICIENT_EVIDENCE": 0}
+        for record in completed:
+            if record["stage"] == stage:
+                for verdict, count in record["verification"]["verdict_counts"].items():
+                    counts[verdict] += count
+        return counts
+
+    def errors(api):
+        return sum(1 for t in trace if t["error"] and t["error"].get("step") != "generation"
+                   and bool(t["error"].get("api_error")) == api)
+
+    ran = [t for t in trace if t["passes"]]          # verification actually started
+    revised = [t for t in trace if t["revision_attempted"]]
+    outcomes = {outcome: sum(t["outcome"] == outcome for t in trace) for outcome in OUTCOMES}
+    usage = [t["usage"] for t in ran]
+    costs = [t["estimated_cost_usd"] for t in ran]
+    return {
+        "questions": len(verified),
+        "extractor": trace[0].get("extractor") if trace else None,
+        "verifier": trace[0].get("verifier") if trace else None,
+        "final_status_counts": {s: sum(v["status"] == s for v in verified)
+                                for s in dict.fromkeys(v["status"] for v in verified)},
+        "outcome_counts": outcomes,
+        "answers_verified": len(ran),
+        "extraction_success_rate": _rate(len(extracted), len(passes)),
+        "verification_completion_rate": _rate(len(completed), len(extracted)),
+        "claims_original": verdicts("original"),
+        "claims_revision": verdicts("revision"),
+        "original_accepted": outcomes["accepted_original"],
+        "revision_attempted": len(revised),
+        "revised_successfully": outcomes["accepted_revision"],
+        "revision_success_rate": _rate(outcomes["accepted_revision"], len(revised)),
+        "abstained": outcomes["abstained"] + outcomes["revision_unsupported"],
+        "verification_api_failures": errors(api=True),
+        "verification_invalid_outputs": errors(api=False),
+        "supported_claims_citing_support": _rate(
+            sum(1 for p in completed for c in p["verification"]["results"] if c["support_cited"]),
+            sum(1 for p in completed for c in p["verification"]["results"] if c["verdict"] == "SUPPORTED")),
+        "mean_verification_s": _mean(t["latency_s"] for t in ran),
+        "verification_llm_calls": sum(t.get("llm_calls", 0) for t in trace),
+        "verification_input_tokens": sum(u.get("input_tokens", 0) for u in usage) if usage else None,
+        "verification_output_tokens": sum(u.get("output_tokens", 0) for u in usage) if usage else None,
+        "verification_cost_usd": sum(costs) if costs and all(c is not None for c in costs) else None,
+        "claim_accuracy": "measured separately on labeled claims: python -m src.evaluate_verification",
+    }
+
+
+def print_verification_summary(summary):
+    mock = (summary["verifier"] or "").startswith("mock")
+    print("\nM5 verification (same questions; baseline metrics above are unchanged M4 results)")
+    print(f"Extractor: {summary['extractor']}   Verifier: {summary['verifier']}")
+    if mock:
+        print("*** Mock components: these numbers test the pipeline, not verification quality. ***")
+    print("Final statuses: " + ", ".join(f"{k} {v}" for k, v in summary["final_status_counts"].items()))
+    print("Outcomes: " + ", ".join(f"{k} {v}" for k, v in summary["outcome_counts"].items() if v))
+    rows = (
+        ("Answers sent to verification", "answers_verified", "int"),
+        ("Extraction success rate", "extraction_success_rate", "rate"),
+        ("Verification completion rate", "verification_completion_rate", "rate"),
+        ("Original answers accepted", "original_accepted", "int"),
+        ("Revisions attempted", "revision_attempted", "int"),
+        ("Revised successfully", "revised_successfully", "int"),
+        ("Abstained (all reasons)", "abstained", "int"),
+        ("API failures (availability)", "verification_api_failures", "int"),
+        ("Invalid outputs (validation)", "verification_invalid_outputs", "int"),
+        ("SUPPORTED claims citing support", "supported_claims_citing_support", "rate"),
+        ("Mean added latency", "mean_verification_s", "s"),
+        ("Added LLM calls", "verification_llm_calls", "int"),
+        ("Added input tokens", "verification_input_tokens", "int"),
+        ("Added output tokens", "verification_output_tokens", "int"),
+        ("Added estimated cost", "verification_cost_usd", "usd"),
+    )
+    for label, key, kind in rows:
+        print(f"  {label:<32}{_fmt(summary[key], kind)}")
+    for stage in ("original", "revision"):
+        counts = summary[f"claims_{stage}"]
+        print(f"  {'Claim verdicts, ' + stage:<32}" + ", ".join(f"{k} {v}" for k, v in counts.items()))
+    print(f"  {'Claim-level accuracy':<32}{summary['claim_accuracy']}")
+    print("A verdict is the verifier's judgment, not ground truth; it has not been shown to improve accuracy.")
 
 
 def review_counts(rows):
@@ -324,6 +486,8 @@ def build_parser():
     parser.add_argument("--temperature", type=float, default=None)
     parser.add_argument("--top-p", type=float, default=None)
     parser.add_argument("--out", default=None, help="output JSONL path (default: results/generation/<timestamp>.jsonl)")
+    parser.add_argument("--verify", action="store_true",
+                        help="M5: add claim verification and at most one revision (dry run: offline mocks)")
     return parser
 
 
@@ -342,6 +506,8 @@ def main(argv=None, llm=None, index=None):
         rows = load_rows(args.summarize_review)
         model = rows[0]["model"] if rows else "n/a"
         print_generation_summary(summarize_generation(rows), "saved results", model, args.summarize_review)
+        if any("verified" in row for row in rows):
+            print_verification_summary(summarize_verification(rows))
         return 0
 
     if args.method not in ALL_METHODS:
@@ -367,7 +533,7 @@ def main(argv=None, llm=None, index=None):
 
     if llm is None:
         if args.dry_run:
-            llm = MockGemini()
+            llm = MockGemini(inject_unsupported=args.verify)
         else:
             load_env_file(PROJECT_ROOT / ".env")
             try:
@@ -378,19 +544,27 @@ def main(argv=None, llm=None, index=None):
                 print(f"Warning: {warning}", file=sys.stderr)
 
     mode = "dry run, mocked Gemini" if args.dry_run else "live Gemini API"
+    verify = (dry_run_verification() if args.dry_run else {}) if args.verify else None
     print(f"About to evaluate {len(selected)} development questions ({mode}, model {llm.model}, "
-          f"retrieval {args.method}, top {args.evidence_k}).")
+          f"retrieval {args.method}, top {args.evidence_k})" + (", with M5 verification." if args.verify else "."))
     if args.live:
-        print(f"This makes up to {len(selected)} API requests (plus bounded retries on transient errors).")
+        per_question = 6 if args.verify else 1
+        print(f"This makes up to {per_question * len(selected)} API requests (plus bounded retries on transient "
+              "errors)" + (": generation, extraction, verification and at most one revision with re-check per "
+                           "question." if args.verify else "."))
 
     if index is None:
         index = build_search_index(methods=(args.method,))
     out_path = Path(args.out) if args.out else RESULTS_DIR / (
-        f"{datetime.now().strftime('%Y%m%d-%H%M%S')}_{'dry-run' if args.dry_run else 'live'}_{len(selected)}q.jsonl")
+        f"{datetime.now().strftime('%Y%m%d-%H%M%S')}_{'dry-run' if args.dry_run else 'live'}"
+        f"{'_verify' if args.verify else ''}_{len(selected)}q.jsonl")
     start = time.perf_counter()
-    rows, interrupted = run_generation_eval(selected, index, llm, out_path, args.method, args.evidence_k)
+    rows, interrupted = run_generation_eval(selected, index, llm, out_path, args.method, args.evidence_k,
+                                            verify=verify)
     print(f"Finished in {time.perf_counter() - start:.1f} s.")
     print_generation_summary(summarize_generation(rows), mode, llm.model, out_path, interrupted)
+    if args.verify:
+        print_verification_summary(summarize_verification(rows))
     return 130 if interrupted else 0
 
 

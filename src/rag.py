@@ -5,6 +5,7 @@ Usage:
     python -m src.rag --question "..." --method dense --evidence-k 3
     python -m src.rag --question "..." --model gemini-3.6-flash --timeout 30
     python -m src.rag --question "..." --json          # full structured result as JSON
+    python -m src.rag --question "..." --verify        # M5: claim verification + at most one revision
 
 Pipeline: question -> retrieval (default hybrid 0.6 / 0.4, top 5, no reranking)
 -> grounded prompt -> Gemini structured output -> schema validation -> citation
@@ -17,7 +18,11 @@ Each failure has its own status so they are never confused:
     citation_failure  valid output, but it cites unsupplied sections or answers without citations
     abstained         valid output in which the model said the evidence is insufficient
     answered          valid output whose citations all refer to supplied sections
-"answered" is not "correct": citations are checked for existence, not support (M5).
+"answered" is not "correct": citations are checked for existence, not support.
+
+--verify (M5, off by default) adds claim extraction, claim-evidence
+verification and at most one revision; see src/self_correction.py for its
+statuses. Without --verify the M4 path is unchanged.
 """
 
 import argparse
@@ -199,8 +204,66 @@ def format_result(result):
     return "\n".join(lines)
 
 
+def format_verified_result(result):
+    """Text output for --verify: the user-facing answer first, then the verification trace."""
+    verification = result["verification"]
+    baseline = result["baseline"]
+    lines = ["", f"Question: {result['question']}"]
+    lines.append(f"Model: {result['model']}   Extractor: {verification.get('extractor')}   "
+                 f"Verifier: {verification.get('verifier')}")
+    lines.append(f"Status: {result['status']}   Outcome: {verification['outcome']}")
+    if result["error"]:
+        error = result["error"]
+        lines.append(f"Error ({error.get('step')}/{error.get('stage')}, {error['kind']}): {error['message']}")
+    lines.append("")
+    if result["status"] == "verified_answer":
+        lines += ["Verified answer:", f"  {result['answer']}", "",
+                  f"Citations: {', '.join(result['citations']) or '(none)'}"]
+    elif result["status"] == "abstained":
+        lines += ["Abstained:", f"  {result['answer']}"]
+    else:
+        lines.append("Answer withheld: it could not be verified.")
+
+    for record in verification["passes"]:
+        title = "original answer" if record["stage"] == "original" else "revised answer"
+        accepted = verification["outcome"] in ("accepted_original", "accepted_revision") and record["all_supported"]
+        lines += ["", f"Verification trace - {title}" + ("" if accepted else " (diagnostic, not the answer)") + ":"]
+        extraction, check = record["extraction"], record["verification"]
+        if extraction["status"] != "ok":
+            lines.append(f"  extraction failed: {extraction['error']['message']}")
+            continue
+        verdicts = {r["claim_id"]: r for r in check["results"]}
+        for claim in extraction["claims"]:
+            item = verdicts.get(claim["claim_id"])
+            verdict = item["verdict"] if item else "NOT VERIFIED"
+            evidence = f" [{', '.join(item['evidence_section_ids'])}]" if item and item["evidence_section_ids"] else ""
+            lines.append(f"  {claim['claim_id']} {verdict:<22}{evidence} {claim['text']}")
+            if item and item["verdict"] != "SUPPORTED":
+                lines.append(f"      {item['explanation']}")
+        if check["status"] == "failed":
+            lines.append(f"  verification failed: {check['error']['message']}")
+    if verification["revision_attempted"]:
+        lines.append(f"Revision: {verification['revision']['status']} (at most one revision is attempted)")
+
+    latency = result["latency_s"]
+    lines += ["", f"Latency: baseline {latency['baseline']:.3f} s, verification {latency['verification']:.3f} s, "
+                  f"total {latency['total']:.3f} s (model loading excluded)"]
+    usage = result["usage"]["verification"]
+    lines.append(f"LLM calls for verification: {verification.get('llm_calls', 0)}"
+                 + (f"; tokens: input {usage.get('input_tokens')}, output {usage.get('output_tokens')}" if usage else ""))
+    costs = result["estimated_cost_usd"]
+    if costs["total"] is not None:
+        lines.append(f"Est. paid-tier cost: baseline ${costs['baseline']:.6f} + verification "
+                     f"${costs['verification']:.6f} = ${costs['total']:.6f}")
+    lines.append(f"Baseline (M4) status: {baseline['status']}")
+    if verification.get("verifier", "").startswith("mock"):
+        lines.append("Warning: mock verifier - a lexical heuristic for offline testing, not real verification.")
+    return "\n".join(lines)
+
+
 def build_parser():
-    parser = argparse.ArgumentParser(description="RAGForge grounded answering with Gemini (M4).")
+    parser = argparse.ArgumentParser(description="RAGForge grounded answering with Gemini (M4), optional "
+                                                 "claim verification (M5).")
     parser.add_argument("--question", required=True, help="the question to answer")
     parser.add_argument("--method", choices=ALL_METHODS, default=RAG_METHOD,
                         help=f"retrieval method (default: {RAG_METHOD})")
@@ -216,6 +279,10 @@ def build_parser():
     parser.add_argument("--top-p", type=float, default=None, help="nucleus sampling; unset = model default")
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_S, help="request timeout in seconds")
     parser.add_argument("--json", action="store_true", help="print the full result as JSON")
+    parser.add_argument("--verify", action="store_true",
+                        help="M5: extract claims, verify them against the evidence, revise at most once (off by default)")
+    parser.add_argument("--verifier", choices=("gemini", "mock"), default="gemini",
+                        help="with --verify: claim verifier (default gemini; mock = offline lexical heuristic)")
     return parser
 
 
@@ -233,6 +300,8 @@ def main(argv=None, llm=None, index=None):
         retrieval_options(args.method, args.dense_weight, args.bm25_weight)
     except ValueError as error:
         parser.error(str(error))
+    if args.verifier != "gemini" and not args.verify:
+        parser.error("--verifier requires --verify.")
 
     load_env_file(PROJECT_ROOT / ".env")
     if llm is None:
@@ -246,6 +315,8 @@ def main(argv=None, llm=None, index=None):
 
     if index is None:
         index = build_search_index(methods=(args.method,))
+    if args.verify:
+        return _main_verified(args, index, llm)
     result = answer_question(args.question, index, llm, args.method, args.evidence_k,
                              args.dense_weight, args.bm25_weight)
     if args.json:
@@ -256,6 +327,24 @@ def main(argv=None, llm=None, index=None):
         if result["estimated_cost_usd"] is not None:
             print(f"Pricing source: {PRICING_SOURCE}")
     return 0 if result["status"] in ("answered", "abstained") else 1
+
+
+def _main_verified(args, index, llm):
+    from src.self_correction import answer_question_verified
+    from src.verification import MockVerifier
+
+    verifier = MockVerifier() if args.verifier == "mock" else None
+    result = answer_question_verified(args.question, index, llm, verifier=verifier, method=args.method,
+                                      evidence_k=args.evidence_k, dense_weight=args.dense_weight,
+                                      bm25_weight=args.bm25_weight)
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print("RAGForge — Verified Answer (Gemini + claim verification)")
+        print(format_verified_result(result))
+        if result["estimated_cost_usd"]["total"] is not None:
+            print(f"Pricing source: {PRICING_SOURCE}")
+    return 0 if result["status"] in ("verified_answer", "abstained") else 1
 
 
 if __name__ == "__main__":
