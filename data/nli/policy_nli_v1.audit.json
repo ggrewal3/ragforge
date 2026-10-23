@@ -1,0 +1,1090 @@
+{
+  "generated_at": "2026-10-23T00:10:25+00:00",
+  "examples": 1271,
+  "independent_groups": {
+    "families": 15,
+    "facts": 275,
+    "families_per_split": {
+      "train": [
+        "F01-refunds",
+        "F02-warranty",
+        "F05-support",
+        "F06-expenses",
+        "F07-purchasing",
+        "F08-payables",
+        "F09-leave",
+        "F14-incidents",
+        "F15-third-party"
+      ],
+      "validation": [
+        "F10-workplace",
+        "F11-development",
+        "F13-classification"
+      ],
+      "test": [
+        "F03-shipping",
+        "F04-subscriptions",
+        "F12-authentication"
+      ]
+    }
+  },
+  "exact_duplicate_pairs": [],
+  "conflicting_label_pairs": [],
+  "facts_crossing_splits": [],
+  "claims_crossing_splits": [],
+  "families_crossing_splits": [],
+  "sections_crossing_splits": [],
+  "evidence_texts_crossing_splits": [],
+  "evidence_sentences_crossing_splits": [],
+  "near_duplicate_claims_across_splits": [],
+  "cross_family_references": [
+    {
+      "section_id": "ESC-733.3",
+      "family": "F05-support",
+      "split": "train",
+      "references": "SEC-304",
+      "referenced_family": "F14-incidents",
+      "referenced_split": "train",
+      "crosses_splits": false
+    },
+    {
+      "section_id": "FIN-201.4",
+      "family": "F06-expenses",
+      "split": "train",
+      "references": "FIN-204",
+      "referenced_family": "F07-purchasing",
+      "referenced_split": "train",
+      "crosses_splits": false
+    },
+    {
+      "section_id": "FIN-202.1",
+      "family": "F07-purchasing",
+      "split": "train",
+      "references": "FIN-203",
+      "referenced_family": "F08-payables",
+      "referenced_split": "train",
+      "crosses_splits": false
+    },
+    {
+      "section_id": "FIN-202.4",
+      "family": "F07-purchasing",
+      "split": "train",
+      "references": "SEC-306",
+      "referenced_family": "F15-third-party",
+      "referenced_split": "train",
+      "crosses_splits": false
+    },
+    {
+      "section_id": "FIN-206.2",
+      "family": "F08-payables",
+      "split": "train",
+      "references": "SEC-304",
+      "referenced_family": "F14-incidents",
+      "referenced_split": "train",
+      "crosses_splits": false
+    },
+    {
+      "section_id": "HR-102.2",
+      "family": "F10-workplace",
+      "split": "validation",
+      "references": "FIN-201",
+      "referenced_family": "F06-expenses",
+      "referenced_split": "train",
+      "crosses_splits": true
+    },
+    {
+      "section_id": "HR-102.3",
+      "family": "F10-workplace",
+      "split": "validation",
+      "references": "SEC-303",
+      "referenced_family": "F13-classification",
+      "referenced_split": "validation",
+      "crosses_splits": false
+    },
+    {
+      "section_id": "HR-102.4",
+      "family": "F10-workplace",
+      "split": "validation",
+      "references": "HR-106",
+      "referenced_family": "F06-expenses",
+      "referenced_split": "train",
+      "crosses_splits": true
+    },
+    {
+      "section_id": "HR-102.4",
+      "family": "F10-workplace",
+      "split": "validation",
+      "references": "SEC-305",
+      "referenced_family": "F14-incidents",
+      "referenced_split": "train",
+      "crosses_splits": true
+    },
+    {
+      "section_id": "HR-103.2",
+      "family": "F10-workplace",
+      "split": "validation",
+      "references": "SEC-301",
+      "referenced_family": "F12-authentication",
+      "referenced_split": "test",
+      "crosses_splits": true
+    },
+    {
+      "section_id": "HR-103.2",
+      "family": "F10-workplace",
+      "split": "validation",
+      "references": "SEC-302",
+      "referenced_family": "F12-authentication",
+      "referenced_split": "test",
+      "crosses_splits": true
+    },
+    {
+      "section_id": "HR-104.4",
+      "family": "F09-leave",
+      "split": "train",
+      "references": "HR-102",
+      "referenced_family": "F10-workplace",
+      "referenced_split": "validation",
+      "crosses_splits": true
+    },
+    {
+      "section_id": "HR-105.1",
+      "family": "F11-development",
+      "split": "validation",
+      "references": "FIN-204",
+      "referenced_family": "F07-purchasing",
+      "referenced_split": "train",
+      "crosses_splits": true
+    },
+    {
+      "section_id": "HR-105.1",
+      "family": "F11-development",
+      "split": "validation",
+      "references": "HR-106",
+      "referenced_family": "F06-expenses",
+      "referenced_split": "train",
+      "crosses_splits": true
+    },
+    {
+      "section_id": "HR-106.1",
+      "family": "F06-expenses",
+      "split": "train",
+      "references": "FIN-204",
+      "referenced_family": "F07-purchasing",
+      "referenced_split": "train",
+      "crosses_splits": false
+    },
+    {
+      "section_id": "REF-728.4",
+      "family": "F01-refunds",
+      "split": "train",
+      "references": "WAR-731",
+      "referenced_family": "F02-warranty",
+      "referenced_split": "train",
+      "crosses_splits": false
+    },
+    {
+      "section_id": "REF-729.4",
+      "family": "F01-refunds",
+      "split": "train",
+      "references": "WAR-731",
+      "referenced_family": "F02-warranty",
+      "referenced_split": "train",
+      "crosses_splits": false
+    },
+    {
+      "section_id": "SEC-302.1",
+      "family": "F12-authentication",
+      "split": "test",
+      "references": "SEC-303",
+      "referenced_family": "F13-classification",
+      "referenced_split": "validation",
+      "crosses_splits": true
+    },
+    {
+      "section_id": "SEC-302.1",
+      "family": "F12-authentication",
+      "split": "test",
+      "references": "SEC-306",
+      "referenced_family": "F15-third-party",
+      "referenced_split": "train",
+      "crosses_splits": true
+    },
+    {
+      "section_id": "SEC-302.3",
+      "family": "F12-authentication",
+      "split": "test",
+      "references": "SEC-304",
+      "referenced_family": "F14-incidents",
+      "referenced_split": "train",
+      "crosses_splits": true
+    },
+    {
+      "section_id": "SEC-306.2",
+      "family": "F15-third-party",
+      "split": "train",
+      "references": "SEC-302",
+      "referenced_family": "F12-authentication",
+      "referenced_split": "test",
+      "crosses_splits": true
+    },
+    {
+      "section_id": "SUB-730.4",
+      "family": "F04-subscriptions",
+      "split": "test",
+      "references": "REF-728",
+      "referenced_family": "F01-refunds",
+      "referenced_split": "train",
+      "crosses_splits": true
+    },
+    {
+      "section_id": "SUB-730.4",
+      "family": "F04-subscriptions",
+      "split": "test",
+      "references": "REF-729",
+      "referenced_family": "F01-refunds",
+      "referenced_split": "train",
+      "crosses_splits": true
+    }
+  ],
+  "benchmark": {
+    "excluded_near_duplicate_claims": [
+      {
+        "claim_id": "ESC-733.3-a/db6e42",
+        "claim": "A Tier 1 agent must escalate a case to Tier 2 when it remains unresolved after 2 customer contacts or 48 hours, whichever comes first.",
+        "benchmark_matches": [
+          [
+            "V025",
+            1.0
+          ]
+        ]
+      },
+      {
+        "claim_id": "FIN-201.2-a/91d483",
+        "claim": "Business class is permitted for flights of 6 hours or longer with Vice President approval.",
+        "benchmark_matches": [
+          [
+            "V014",
+            1.0
+          ]
+        ]
+      },
+      {
+        "claim_id": "FIN-201.2-a/57b6a7",
+        "claim": "Business class is permitted for flights of 4 hours or longer with Vice President approval.",
+        "benchmark_matches": [
+          [
+            "V014",
+            0.818
+          ]
+        ]
+      },
+      {
+        "claim_id": "FIN-201.2-b/78a5b1",
+        "claim": "Hotel stays are capped at $350 per night in designated high-cost cities.",
+        "benchmark_matches": [
+          [
+            "V030",
+            1.0
+          ]
+        ]
+      },
+      {
+        "claim_id": "HR-104.2-a/cb4c37",
+        "claim": "Birth parents receive 12 weeks of parental leave at full base pay.",
+        "benchmark_matches": [
+          [
+            "V009",
+            0.909
+          ]
+        ]
+      },
+      {
+        "claim_id": "HR-105.3-c/e7a573",
+        "claim": "Employees who resign within 12 months of receiving tuition assistance must repay 50 percent of the amount.",
+        "benchmark_matches": [
+          [
+            "V035",
+            0.846
+          ]
+        ]
+      },
+      {
+        "claim_id": "REF-728.3-c/93ea34",
+        "claim": "Domestic customers who choose store credit instead of a refund receive a 10 percent bonus.",
+        "benchmark_matches": [
+          [
+            "V007",
+            0.833
+          ]
+        ]
+      },
+      {
+        "claim_id": "REF-728.4-a/a9e4e5",
+        "claim": "Items purchased between November 15 and December 31 may be returned until March 31 of the following year.",
+        "benchmark_matches": [
+          [
+            "V021",
+            0.846
+          ]
+        ]
+      },
+      {
+        "claim_id": "REF-729.3-c/3076d0",
+        "claim": "International customers who choose store credit receive a 10 percent bonus.",
+        "benchmark_matches": [
+          [
+            "V007",
+            0.818
+          ]
+        ]
+      }
+    ],
+    "similarity_to_dataset_claims": [
+      {
+        "benchmark_id": "V001",
+        "max_jaccard_by_split": {
+          "train": 0.625,
+          "validation": 0.118,
+          "test": 0.182
+        }
+      },
+      {
+        "benchmark_id": "V002",
+        "max_jaccard_by_split": {
+          "train": 0.625,
+          "validation": 0.143,
+          "test": 0.25
+        }
+      },
+      {
+        "benchmark_id": "V003",
+        "max_jaccard_by_split": {
+          "train": 0.778,
+          "validation": 0.091,
+          "test": 0.154
+        }
+      },
+      {
+        "benchmark_id": "V004",
+        "max_jaccard_by_split": {
+          "train": 0.778,
+          "validation": 0.091,
+          "test": 0.154
+        }
+      },
+      {
+        "benchmark_id": "V005",
+        "max_jaccard_by_split": {
+          "train": 0.5,
+          "validation": 0.0,
+          "test": 0.111
+        }
+      },
+      {
+        "benchmark_id": "V006",
+        "max_jaccard_by_split": {
+          "train": 0.5,
+          "validation": 0.1,
+          "test": 0.125
+        }
+      },
+      {
+        "benchmark_id": "V007",
+        "max_jaccard_by_split": {
+          "train": 0.75,
+          "validation": 0.059,
+          "test": 0.176
+        }
+      },
+      {
+        "benchmark_id": "V008",
+        "max_jaccard_by_split": {
+          "train": 0.75,
+          "validation": 0.214,
+          "test": 0.154
+        }
+      },
+      {
+        "benchmark_id": "V009",
+        "max_jaccard_by_split": {
+          "train": 0.75,
+          "validation": 0.062,
+          "test": 0.105
+        }
+      },
+      {
+        "benchmark_id": "V010",
+        "max_jaccard_by_split": {
+          "train": 0.0,
+          "validation": 0.0,
+          "test": 0.286
+        }
+      },
+      {
+        "benchmark_id": "V011",
+        "max_jaccard_by_split": {
+          "train": 0.077,
+          "validation": 0.154,
+          "test": 0.75
+        }
+      },
+      {
+        "benchmark_id": "V012",
+        "max_jaccard_by_split": {
+          "train": 0.214,
+          "validation": 0.143,
+          "test": 0.4
+        }
+      },
+      {
+        "benchmark_id": "V013",
+        "max_jaccard_by_split": {
+          "train": 0.188,
+          "validation": 0.071,
+          "test": 0.6
+        }
+      },
+      {
+        "benchmark_id": "V014",
+        "max_jaccard_by_split": {
+          "train": 0.727,
+          "validation": 0.118,
+          "test": 0.067
+        }
+      },
+      {
+        "benchmark_id": "V015",
+        "max_jaccard_by_split": {
+          "train": 0.727,
+          "validation": 0.118,
+          "test": 0.067
+        }
+      },
+      {
+        "benchmark_id": "V016",
+        "max_jaccard_by_split": {
+          "train": 0.769,
+          "validation": 0.2,
+          "test": 0.062
+        }
+      },
+      {
+        "benchmark_id": "V017",
+        "max_jaccard_by_split": {
+          "train": 0.455,
+          "validation": 0.143,
+          "test": 0.077
+        }
+      },
+      {
+        "benchmark_id": "V018",
+        "max_jaccard_by_split": {
+          "train": 0.25,
+          "validation": 0.231,
+          "test": 0.273
+        }
+      },
+      {
+        "benchmark_id": "V019",
+        "max_jaccard_by_split": {
+          "train": 0.733,
+          "validation": 0.043,
+          "test": 0.105
+        }
+      },
+      {
+        "benchmark_id": "V020",
+        "max_jaccard_by_split": {
+          "train": 0.571,
+          "validation": 0.053,
+          "test": 0.059
+        }
+      },
+      {
+        "benchmark_id": "V021",
+        "max_jaccard_by_split": {
+          "train": 0.467,
+          "validation": 0.062,
+          "test": 0.05
+        }
+      },
+      {
+        "benchmark_id": "V022",
+        "max_jaccard_by_split": {
+          "train": 0.286,
+          "validation": 0.067,
+          "test": 0.083
+        }
+      },
+      {
+        "benchmark_id": "V023",
+        "max_jaccard_by_split": {
+          "train": 0.429,
+          "validation": 0.125,
+          "test": 0.071
+        }
+      },
+      {
+        "benchmark_id": "V024",
+        "max_jaccard_by_split": {
+          "train": 0.25,
+          "validation": 0.1,
+          "test": 0.133
+        }
+      },
+      {
+        "benchmark_id": "V025",
+        "max_jaccard_by_split": {
+          "train": 0.471,
+          "validation": 0.05,
+          "test": 0.087
+        }
+      },
+      {
+        "benchmark_id": "V026",
+        "max_jaccard_by_split": {
+          "train": 0.667,
+          "validation": 0.091,
+          "test": 0.154
+        }
+      },
+      {
+        "benchmark_id": "V027",
+        "max_jaccard_by_split": {
+          "train": 0.083,
+          "validation": 0.083,
+          "test": 0.778
+        }
+      },
+      {
+        "benchmark_id": "V028",
+        "max_jaccard_by_split": {
+          "train": 0.143,
+          "validation": 0.154,
+          "test": 0.25
+        }
+      },
+      {
+        "benchmark_id": "V029",
+        "max_jaccard_by_split": {
+          "train": 0.222,
+          "validation": 0.1,
+          "test": 0.375
+        }
+      },
+      {
+        "benchmark_id": "V030",
+        "max_jaccard_by_split": {
+          "train": 0.455,
+          "validation": 0.059,
+          "test": 0.056
+        }
+      },
+      {
+        "benchmark_id": "V031",
+        "max_jaccard_by_split": {
+          "train": 0.556,
+          "validation": 0.083,
+          "test": 0.1
+        }
+      },
+      {
+        "benchmark_id": "V032",
+        "max_jaccard_by_split": {
+          "train": 0.4,
+          "validation": 0.1,
+          "test": 0.1
+        }
+      },
+      {
+        "benchmark_id": "V033",
+        "max_jaccard_by_split": {
+          "train": 0.429,
+          "validation": 0.364,
+          "test": 0.133
+        }
+      },
+      {
+        "benchmark_id": "V034",
+        "max_jaccard_by_split": {
+          "train": 0.333,
+          "validation": 0.4,
+          "test": 0.071
+        }
+      },
+      {
+        "benchmark_id": "V035",
+        "max_jaccard_by_split": {
+          "train": 0.111,
+          "validation": 0.714,
+          "test": 0.125
+        }
+      },
+      {
+        "benchmark_id": "V036",
+        "max_jaccard_by_split": {
+          "train": 0.158,
+          "validation": 0.643,
+          "test": 0.125
+        }
+      },
+      {
+        "benchmark_id": "V037",
+        "max_jaccard_by_split": {
+          "train": 0.143,
+          "validation": 0.364,
+          "test": 0.143
+        }
+      },
+      {
+        "benchmark_id": "V038",
+        "max_jaccard_by_split": {
+          "train": 0.235,
+          "validation": 0.5,
+          "test": 0.062
+        }
+      },
+      {
+        "benchmark_id": "V039",
+        "max_jaccard_by_split": {
+          "train": 0.231,
+          "validation": 0.143,
+          "test": 0.462
+        }
+      },
+      {
+        "benchmark_id": "V040",
+        "max_jaccard_by_split": {
+          "train": 0.231,
+          "validation": 0.143,
+          "test": 0.357
+        }
+      }
+    ]
+  },
+  "label_flags": {
+    "counts": {
+      "contradiction_with_low_overlap": 14,
+      "distractor_overlaps_claim": 24,
+      "insufficient_but_looks_supported": 8,
+      "negation_mismatch": 40,
+      "scope_terms_not_in_evidence": 23,
+      "supported_with_numbers_not_in_evidence": 30
+    },
+    "flagged_examples": 133,
+    "by_example": {
+      "nli-c028b23047c7": [
+        "negation_mismatch"
+      ],
+      "nli-4a606d63fa93": [
+        "negation_mismatch"
+      ],
+      "nli-df299bf0676d": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-931e75254374": [
+        "negation_mismatch"
+      ],
+      "nli-a4a95f88ef32": [
+        "negation_mismatch"
+      ],
+      "nli-14bcf3240624": [
+        "negation_mismatch"
+      ],
+      "nli-1f5bd61c81c4": [
+        "insufficient_but_looks_supported"
+      ],
+      "nli-7eb5c39d5b8f": [
+        "insufficient_but_looks_supported"
+      ],
+      "nli-c51aa2553a80": [
+        "supported_with_numbers_not_in_evidence",
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-95210ef4aaab": [
+        "supported_with_numbers_not_in_evidence",
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-e257374423da": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-2bce0aba6ab1": [
+        "insufficient_but_looks_supported"
+      ],
+      "nli-bb692f59dfae": [
+        "insufficient_but_looks_supported"
+      ],
+      "nli-81df9a64af28": [
+        "negation_mismatch"
+      ],
+      "nli-70e08e70877d": [
+        "negation_mismatch"
+      ],
+      "nli-443fc523d889": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-a65f6e72972b": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-bf020cb75730": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-76ce19a503cf": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-567ab9fdda30": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-cb9d4d228e60": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-876e47a0a942": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-4aef2728e980": [
+        "contradiction_with_low_overlap"
+      ],
+      "nli-344dd52d946c": [
+        "contradiction_with_low_overlap"
+      ],
+      "nli-9a8b0f75ab71": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-e69a2e1d6fff": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-77fa376337d1": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-59482342758d": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-a5ef18b6376d": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-e0b3577b0b62": [
+        "negation_mismatch"
+      ],
+      "nli-48af1236a42f": [
+        "negation_mismatch"
+      ],
+      "nli-455e66512d15": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-fed3be769be0": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-325fe9b8a509": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-44840585523e": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-359df1c28207": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-7bda1c4c383e": [
+        "contradiction_with_low_overlap"
+      ],
+      "nli-68aec2b5136b": [
+        "contradiction_with_low_overlap"
+      ],
+      "nli-50af6919990c": [
+        "contradiction_with_low_overlap"
+      ],
+      "nli-03ec5d52f5ea": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-8aee23c947c8": [
+        "negation_mismatch"
+      ],
+      "nli-26e665d16671": [
+        "negation_mismatch"
+      ],
+      "nli-e3ca86d70f6d": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-b728c9a53179": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-1252e2da5d69": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-817d021c71ab": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-3ae5cf607381": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-ffc20aa7156f": [
+        "negation_mismatch"
+      ],
+      "nli-ce527fb7ea48": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-d60a9a7beccf": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-0552b7770f86": [
+        "negation_mismatch"
+      ],
+      "nli-811e2e314c74": [
+        "negation_mismatch"
+      ],
+      "nli-59a0488573e3": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-8892f2ecf9ff": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-65efd1dfcccd": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-bc4faef14940": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-2e3030fb7107": [
+        "insufficient_but_looks_supported"
+      ],
+      "nli-a198308d5739": [
+        "insufficient_but_looks_supported"
+      ],
+      "nli-030fa4307128": [
+        "negation_mismatch",
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-21c5bbdf8d5d": [
+        "insufficient_but_looks_supported"
+      ],
+      "nli-f0d8048d273b": [
+        "insufficient_but_looks_supported"
+      ],
+      "nli-013973ab33af": [
+        "negation_mismatch"
+      ],
+      "nli-31fb2c8a74d6": [
+        "negation_mismatch"
+      ],
+      "nli-3ebb8f74111c": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-e5c7bd0f36cc": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-8840dfbdf52d": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-f906f7bb04f3": [
+        "negation_mismatch",
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-7d8d45ce487d": [
+        "negation_mismatch"
+      ],
+      "nli-acefaf7b137b": [
+        "negation_mismatch"
+      ],
+      "nli-904a6e9d5bfa": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-e47d7467b27a": [
+        "negation_mismatch"
+      ],
+      "nli-84d9e7909913": [
+        "negation_mismatch"
+      ],
+      "nli-72a044fe941a": [
+        "negation_mismatch",
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-9e49d0aa8e39": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-04da58c72720": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-787b091b96eb": [
+        "negation_mismatch"
+      ],
+      "nli-0bbbe6a17709": [
+        "negation_mismatch"
+      ],
+      "nli-4d38b9e2e3b9": [
+        "contradiction_with_low_overlap"
+      ],
+      "nli-5d43aed68dc2": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-97a113de8b5b": [
+        "negation_mismatch"
+      ],
+      "nli-a7908d57eb71": [
+        "negation_mismatch"
+      ],
+      "nli-c7ae157777e5": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-7f1a396d61d8": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-2edfe2890322": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-8e30b6abceeb": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-b00399fd33fa": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-506c6299bf14": [
+        "contradiction_with_low_overlap"
+      ],
+      "nli-650f07c4fda1": [
+        "negation_mismatch"
+      ],
+      "nli-d2820e8a1907": [
+        "negation_mismatch"
+      ],
+      "nli-6fb6ddaffe18": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-4683b67ef6a6": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-c86ddff8aa4b": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-f9b23ff603dc": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-dd38ca9ca281": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-e107cee7feb0": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-f68eb0411b80": [
+        "negation_mismatch"
+      ],
+      "nli-47e95d490b04": [
+        "negation_mismatch"
+      ],
+      "nli-d664481c071c": [
+        "contradiction_with_low_overlap"
+      ],
+      "nli-0af3a9f04a09": [
+        "contradiction_with_low_overlap"
+      ],
+      "nli-f7ad9a23c646": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-a319c27a884f": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-50a111b2f161": [
+        "negation_mismatch"
+      ],
+      "nli-69a228d974b7": [
+        "negation_mismatch"
+      ],
+      "nli-06910c072aec": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-d5569c20f26c": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-e56a547b983a": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-8448aeb8e2ea": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-686df186cabf": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-68c0d9b436a3": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-3b57533d7064": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-771d5c0285d4": [
+        "contradiction_with_low_overlap"
+      ],
+      "nli-d04f2620a0e9": [
+        "contradiction_with_low_overlap"
+      ],
+      "nli-19c548974c3f": [
+        "negation_mismatch"
+      ],
+      "nli-89c3f68ce57e": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-d675dc33f6f3": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-af3d8afe858a": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-5a3cd2c7fd5f": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-d251f239bf3b": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-fe16bd4d1c3d": [
+        "negation_mismatch"
+      ],
+      "nli-2df867a8b48f": [
+        "negation_mismatch"
+      ],
+      "nli-a111327b1582": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-ac98f2e52d44": [
+        "contradiction_with_low_overlap"
+      ],
+      "nli-a1179668eeed": [
+        "scope_terms_not_in_evidence"
+      ],
+      "nli-b2afc6f2b08a": [
+        "contradiction_with_low_overlap"
+      ],
+      "nli-ebd366ce3892": [
+        "contradiction_with_low_overlap"
+      ],
+      "nli-8f71002c0950": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-896df7b37f1e": [
+        "negation_mismatch"
+      ],
+      "nli-8f161989d6e3": [
+        "negation_mismatch"
+      ],
+      "nli-a1c1a83277d9": [
+        "negation_mismatch"
+      ],
+      "nli-7db7f286bb96": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-906346636922": [
+        "supported_with_numbers_not_in_evidence"
+      ],
+      "nli-0cdab4e9f94f": [
+        "distractor_overlaps_claim"
+      ],
+      "nli-8c297aecce26": [
+        "negation_mismatch",
+        "scope_terms_not_in_evidence"
+      ]
+    },
+    "note": "Heuristic warnings for review prioritisation, not proof that a label is wrong or right."
+  },
+  "limitations": [
+    "The validation split contains only 3 policy families (F10-workplace, F11-development, F13-classification). Its scores will reflect few policy types and have high variance; it is not a broad held-out benchmark.",
+    "The test split contains only 3 policy families (F03-shipping, F04-subscriptions, F12-authentication). Its scores will reflect few policy types and have high variance; it is not a broad held-out benchmark.",
+    "Some sections reference documents in another split's families. Grouping cannot remove this; the referencing sentences mostly name the other policy rather than restate it, but a few restate its rule (see cross_family_references).",
+    "The M5 benchmark is built from the same 24 documents. Near-duplicate claims were excluded, but many benchmark facts are also dataset facts, so the M5 benchmark is not an independent test for a model trained on this dataset."
+  ]
+}

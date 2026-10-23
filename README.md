@@ -18,7 +18,9 @@ The project deliberately avoids RAG frameworks (LangChain, LlamaIndex) and vecto
 - **M3** (cross-encoder reranking of dense and hybrid candidates, development comparison): complete.
 - **M4** (grounded answers with Gemini: structured output, citation-ID validation, dry-run and opt-in live evaluation): implemented and tested offline. No live Gemini run yet (see [M4](#m4--grounded-generation-with-gemini)).
 - **M5** (claim extraction, claim-evidence verification, one bounded revision, verification benchmark): implemented and tested offline. No live Gemini run yet, so no claim that it improves accuracy (see [M5](#m5--claim-level-verification-and-self-correction)).
-- M6 and later: not implemented.
+- **M6.1** (zero-shot local NLI baseline on the verification benchmark): implemented and measured. Not fine-tuned, not wired into M5 (see [M6.1](#m61--local-nli-transformer-baseline)).
+- **M6.2** (policy NLI dataset: hand-authored facts, deterministic generation, family-level splits, leakage audit, review workflow): implemented. 1,271 examples, all draft labels, none human-reviewed yet. A strict review / freeze gate and a lighter 50-example random audit with an experimental freeze are implemented; M6.3 may train on the experimental freeze once the sample is reviewed (see [M6.2](#m62--policy-nli-dataset)).
+- M6.3 and later: not implemented.
 
 ## M1 Architecture
 
@@ -66,6 +68,17 @@ src/claims.py                        atomic claim extraction and strict claim va
 src/verification.py                  verifier interface, verdict validation, Gemini and mock verifiers (M5)
 src/self_correction.py               verify -> revise once -> re-verify -> accept or abstain (M5)
 src/evaluate_verification.py         claim-verification benchmark runner and scoring (M5)
+src/nli.py                           local NLI cross-encoder: label mapping, batched MPS/CPU inference, M5 verifier adapter (M6.1)
+src/evaluate_local_nli.py            zero-shot NLI benchmark, single-pair and interactive inspection (M6.1)
+src/nli_dataset.py                   NLI dataset generation, validation, leakage audit, review queue, statistics (M6.2)
+data/nli/policy_facts.json           hand-authored policy facts and claims, the source of every M6.2 label
+data/nli/policy_nli_v1.jsonl         generated dataset (1,271 examples) + .manifest.json + .audit.json
+data/nli/review_queue_v1.jsonl       draft examples ordered by review priority
+data/nli/shortcut_audit_v1.json      phenomenon/label and surface-cue/label tables, cue-only baseline
+data/nli/reviews.jsonl               append-only, hash-chained human decisions (created by the first review)
+data/nli/frozen/<version>/           immutable snapshots (created only by --freeze or --freeze-experimental)
+data/nli/audit_sample_v1.json        the 50-example stratified random audit sample (seed 6203)
+src/nli_review.py                    review tool, shortcut audit, freeze and frozen-hash verification
 data/evaluations/verification_claims.json  40 hand-labeled claim-evidence examples (M5, draft labels)
 src/retrieve.py                      dense retrieval, search() for all methods, retrieval CLI
 src/evaluate.py                      benchmark: metrics, splits, failure analysis, method comparisons
@@ -74,6 +87,10 @@ tests/test_hybrid.py                 M2 / M2.5 tests (BM25, RRF, retrieval inter
 tests/test_rerank.py                 M3 tests (mock cross-encoder; real model opt-in)
 tests/test_generation.py             M4 tests (fake Gemini; live API opt-in)
 tests/test_verification.py           M5 tests (routed fake LLM, fake SDK; no network)
+tests/test_nli.py                    M6.1 tests (fake tokenizer and model; real checkpoint opt-in)
+tests/test_nli_dataset.py            M6.2 tests (synthetic documents and the real facts file; no network)
+tests/test_nli_review.py             review, resume, history, tamper detection, freeze and shortcut-audit tests
+tests/test_nli_sample.py             audit sampling, agreement, experimental freeze and frozen-data loading tests
 .env.example                         template for GEMINI_API_KEY / GEMINI_MODEL (copy to .env)
 tests/fixtures/dense_regression.json dense top-5 results recorded before M2, for regression checks
 tests/fixtures/hybrid_regression.json BM25 and default-hybrid top-10 recorded before M2.5
@@ -1017,8 +1034,428 @@ python -m src.evaluate_generation --live --verify --max-questions 8
 - **Labels are a draft**, written by one author with AI assistance, and the benchmark is small: one example moves accuracy by 0.025.
 - **Prompt injection is out of scope (M7).** M5 blocks are escaped like M4's, which is hygiene, not a defense.
 
+## M6.1 — Local NLI Transformer Baseline
+
+M6.1 asks whether a small, pretrained, local NLI model can do M5's claim verification without an API. No fine-tuning, no training data, and no change to M5: the Gemini verifier remains the M5 default.
+
+```
+Benchmark example (claim + evidence section IDs)     data/evaluations/verification_claims.json
+   ↓  one pair per evidence section, never concatenated
+Premise    "{document title}, {section title}: {section text}"    hypothesis = the claim
+   ↓
+NLI cross-encoder    src/nli.py   [CLS] premise [SEP] claim [SEP] -> 3 logits -> softmax
+   ↓  label names from config.id2label
+entailment -> SUPPORTED   contradiction -> CONTRADICTED   neutral -> INSUFFICIENT_EVIDENCE
+   ↓  per-section verdicts aggregated, contradiction first
+Verdict + deciding section IDs                     src/evaluate_local_nli.py -> results/nli/*.jsonl
+```
+
+### Model
+
+**`cross-encoder/nli-MiniLM2-L6-H768`**, pinned to revision `b95119ce93d3e065de6214e38cd4a97b0f2f2c6d` (Apache-2.0).
+
+- **Architecture:** despite the name, it is `RobertaForSequenceClassification`, a 6-layer MiniLMv2 distillation with hidden size 768 and a 512-token limit.
+- **Training data:** SNLI and MultiNLI, not RAGForge policies.
+- **Size:** the safetensors weights are about 330 MB.
+- **Compatibility:** checked with transformers 5.20.1 and torch 2.14.1 on an Apple M4 Pro (MPS). All 105 weight tensors load with no missing or unexpected keys, and verdicts are identical on MPS and CPU (probabilities within 4×10⁻⁶).
+
+**Label mapping, read from `config.id2label`:** `{0: contradiction, 1: entailment, 2: neutral}`.
+- This is not the entailment-first order that is often assumed.
+- `src/nli.py` maps by name, and rejects metadata that does not name exactly these three classes (for example `LABEL_0`).
+- A test checks that permuted label orders give identical verdicts.
+
+### Inference
+
+- **Device:** `model.eval()`, `torch.inference_mode()`, Apple MPS when available, then CUDA, then CPU. An unavailable `--device` falls back to CPU with a note.
+- **Batching:** configurable batch size (default 16).
+- **Truncation:** `truncation="only_first"` to 512 tokens, so only the evidence is ever cut and the claim is always seen whole. Each prediction records its token count and a `truncated` flag. The longest benchmark pair is 149 tokens, and none is truncated.
+- **Output per pair:**
+  - logits in checkpoint order, with their labels;
+  - softmax probabilities;
+  - the NLI class and the RAGForge verdict;
+  - model ID and device;
+  - token count and truncation flag;
+  - latency.
+- **Fixed before any benchmark run:**
+  - **Premise:** document title, section title and text; section IDs are omitted because they mean nothing to the model.
+  - **Aggregation:** for a claim with several sections: any section contradicts → CONTRADICTED; else any entails → SUPPORTED; else INSUFFICIENT_EVIDENCE.
+  - **Why contradiction first:** a similar policy (the domestic 30-day rule) must not be allowed to "support" a wrong international claim that the right section contradicts.
+- `NLIVerifier` wraps the model in M5's `verify(claims, evidence)` interface, and its output passes the same `parse_verdicts()` validation. It is ready for M6.4 but not used by M5.
+
+### Installation and commands
+
+`transformers` (already installed as a sentence-transformers dependency) is now listed in `requirements.txt`. Nothing new needs installing. The first model command downloads the checkpoint to the Hugging Face cache; unit tests never do.
+
+```bash
+python -m src.evaluate_local_nli                                    # benchmark, default model, all 40 (first run downloads)
+python -m src.evaluate_local_nli --model cross-encoder/nli-MiniLM2-L6-H768 --device cpu --batch-size 8
+python -m src.evaluate_local_nli --local-files-only                 # never download
+python -m src.evaluate_local_nli --premise "Employees become eligible after six months." \
+                                 --hypothesis "Employees become eligible after three months."
+python -m src.evaluate_local_nli --example V005                     # one benchmark example, per section
+python -m src.evaluate_local_nli --interactive                      # type evidence and claim pairs
+python -m src.evaluate_local_nli --summarize results/nli/<run>.jsonl
+RAGFORGE_MODEL_TESTS=1 python -m unittest discover -s tests         # includes the cached-checkpoint test
+```
+
+Predictions go to `results/nli/*.jsonl`, one row per example with per-section logits and probabilities, and no labels. Scoring joins them with the draft labels; no label was edited.
+
+### Results (zero-shot, 40 draft-labeled development examples)
+
+From `python -m src.evaluate_local_nli`, Apple M4 Pro:
+
+| Metric | Value |
+|---|---|
+| Accuracy | **0.375** (15 / 40) |
+| Macro-F1 | 0.301 |
+| False SUPPORTED | **1** of 25 non-SUPPORTED claims (rate 0.040): V039 |
+| SUPPORTED precision / recall | 0.000 / 0.000 (no SUPPORTED claim recognized) |
+| CONTRADICTED precision / recall | 0.579 / 0.688 |
+| INSUFFICIENT_EVIDENCE precision / recall | 0.200 / 0.444 |
+| Accuracy, single-section / multi-section examples | 0.345 (29) / 0.455 (11) |
+| Latency per NLI pair (MPS / CPU) | 5.3 ms / 13.6 ms (51 pairs; model load about 2 s, warm-up excluded) |
+
+| Label \ prediction | SUPPORTED | CONTRADICTED | INSUFFICIENT |
+|---|---|---|---|
+| SUPPORTED (15) | 0 | 3 | 12 |
+| CONTRADICTED (16) | 1 | 11 | 4 |
+| INSUFFICIENT_EVIDENCE (9) | 0 | 5 | 4 |
+
+- **The low false-SUPPORTED rate is not a strength here.** The model almost never says entailment, so it rarely says it wrongly. It rejected every supported claim, including V009, which repeats a section sentence word for word (neutral, p = 0.59). Used as M5's verifier, it would reject nearly every correct answer.
+- **The only false SUPPORTED is V039.** It accepts "within 30 days" for annual cancellations, where the section says 14 days (entailment p = 0.60). The number 30 does appear in the section, for renewal reminders.
+- **It also confuses missing with false.** 5 of 9 INSUFFICIENT_EVIDENCE claims were called CONTRADICTED.
+- **Accuracy is below the MockVerifier heuristic's 0.575**, but the error profiles differ: the heuristic produced 12 false SUPPORTED against this model's 1.
+
+### Post-hoc diagnostic: premise length (not the baseline)
+
+The same claim is entailed with p = 0.983 when the premise is the single relevant sentence, but judged neutral against the whole section. This is consistent with a model trained on short, mostly single-sentence premises.
+
+A scratch diagnostic, run *after* seeing the labels, used the same model and aggregation rule:
+
+| Premise variant | Accuracy | Macro-F1 | SUPPORTED recall | False SUPPORTED |
+|---|---|---|---|---|
+| Baseline: title + section text | 0.375 | 0.301 | 0 / 15 | 1 / 25 |
+| Section text, no titles | 0.500 | 0.462 | 3 / 15 | 1 / 25 |
+| Each sentence as a separate premise | 0.575 | 0.547 | 8 / 15 | 1 / 25 |
+
+These variants were chosen after looking at this benchmark, so their scores are optimistic and they were **not adopted**. Splitting by sentence also hides rules whose condition spans two sentences, and over many sentences the contradiction-first rule produces more spurious contradictions (6 of 15 supported claims). The premise format should be decided in M6.2/M6.3 on data other than these 40 labels.
+
+### M6.1 limitations
+
+- **Zero-shot.** The model was never trained on policy text or on this three-way task with these conventions.
+- **Uncalibrated probabilities.** Softmax probabilities are not confidences.
+- **Long, multi-rule premises hurt it badly** (see the diagnostic above).
+- **General NLI does not treat "different group" as neutral.** Similar-policy distractors are often read as contradictions, which M5's definitions say they are not.
+- **Aggregation needs care.** Per-section scoring with contradiction-first precedence is conservative against false SUPPORTED, but one spurious contradiction overrides real support.
+- **The benchmark is small.** 40 examples, one example = 0.025 accuracy, and the labels are a draft written during M5 that still need independent human review. These results do not generalize beyond it.
+- **The latency figures** come from single runs on one laptop.
+
+## M6.2 — Policy NLI Dataset
+
+M6.2 prepares data only: a policy-specific NLI dataset for comparing, in M6.3, a pretrained NLI model, a frozen encoder with a trained head, and full fine-tuning. No model is trained, no API is called, and the M5 benchmark is unchanged.
+
+```
+data/documents/*.json ──┐
+                        ├─ src/nli_dataset.py --generate ─→ data/nli/policy_nli_v1.jsonl (+ manifest)
+data/nli/policy_facts.json (hand-authored)                     ├─ --validate      hard checks + byte-identical regeneration
+data/nli/reviews.jsonl (human decisions, optional) ──┘         ├─ --audit         leakage + heuristic label flags
+                                                               ├─ --review-queue  prioritised draft examples
+                                                               ├─ --review        interactive accept / correct / reject
+                                                               └─ --stats         counts, balance, token lengths
+```
+
+### How examples are made
+
+**Every claim and label is written by hand** in [data/nli/policy_facts.json](data/nli/policy_facts.json): 275 facts and 618 claims from the 24 policies, each with a short reason.
+- Each fact names its decisive evidence with exact quotes, which must lie inside one sentence of one section; loading fails otherwise.
+- No LLM generated or adjusted any label.
+- The generator never writes a claim. It derives evidence formats and extra examples by fixed rules, re-deriving the label for each evidence rather than copying it:
+
+| Derivation | Evidence | Label |
+|---|---|---|
+| authored, `full_section` | the exact section text | the authored label (written to hold against the whole section) |
+| authored, `sentence` | the single decisive sentence | the authored label |
+| — skipped | claims needing 2+ sentences, and 35 facts whose sentence leaves the subject to the section ("Approval is reviewed every 12 months") | no sentence example |
+| `partial_evidence` | one sentence of a SUPPORTED multi-sentence claim | INSUFFICIENT_EVIDENCE |
+| `counterpart` | a sibling policy's evidence for a claim that names its group (domestic vs international, purchases vs reallocations, annual vs parental leave) | INSUFFICIENT_EVIDENCE: a rule for another group neither supports nor contradicts |
+| `distractor` | another sentence of the same section, sharing no number and at most a third of the claim's content words | INSUFFICIENT_EVIDENCE |
+
+**Authoring conventions:**
+- A claim that states a different value for a threshold, deadline, limit or approver the evidence defines is CONTRADICTED, consistent with M5's verifier definitions.
+- Numeric contradictions only go in directions the evidence cannot imply. "At least 20 characters" contradicts "at least 14"; "at least 10" would arguably be implied, so it is avoided.
+- Counterpart pairing is directional: it is used only when the sibling sentence names its own group. A universally worded sentence inside a group-specific policy could otherwise read as support.
+- Nine claims that nearly duplicate one of the 40 M5 benchmark claims (content-word Jaccard ≥ 0.8) are excluded automatically.
+
+### Splits and leakage control
+
+- **Split unit:** 15 policy families, assigned to train / validation / test **before** generation.
+  - Near-duplicate and cross-referencing documents are grouped together: REF-728 + REF-729, FIN-201 + HR-106, FIN-202 + FIN-204 + FIN-205, HR-101 + HR-104, HR-102 + HR-103, SEC-301 + SEC-302, SEC-304 + SEC-305; the other 8 documents are families of one.
+  - Assignment is greedy on authored-claim counts with seed 6202.
+- **Every derived example stays in its claim's family,** so a fact, its sentence and full-section variants, and its counterpart pairs are always in one split.
+- **The audit checks:**
+  - exact duplicates and conflicting labels;
+  - facts, claims, families, sections, evidence texts or individual sentences crossing splits;
+  - near-duplicate claims across splits (Jaccard ≥ 0.7);
+  - cross-family document references;
+  - similarity to the M5 benchmark.
+
+| Split | Families | Facts | Examples | SUPPORTED | CONTRADICTED | INSUFFICIENT | Sentence / full |
+|---|---|---|---|---|---|---|---|
+| train | 9 | 189 | 885 (70%) | 0.43 | 0.35 | 0.22 | 444 / 441 |
+| validation | 3 (workplace, development, classification) | 43 | 190 (15%) | 0.47 | 0.35 | 0.18 | 98 / 92 |
+| test | 3 (shipping, subscriptions, authentication) | 43 | 196 (15%) | 0.46 | 0.36 | 0.18 | 103 / 93 |
+
+**Audit result:**
+- 0 exact duplicates and 0 conflicting labels.
+- 0 facts, families, evidence texts or sentences crossing splits.
+- 0 near-duplicate claims across splits.
+
+**What grouping cannot remove:**
+- **Small held-out splits.** Validation and test each contain only **3 policy families**, so their scores reflect few policy types and will have high variance. With 15 families, that is a structural limit, not a fixable split.
+- **Cross-family references.** 14 sections refer to a document in another split; for example, SEC-302.3 (test) tells employees to report unexpected MFA prompts under SEC-304 (train). Most name the other policy without restating it, but a few restate a rule.
+- **The M5 benchmark is not independent of this dataset.** It uses the same documents and largely the same facts. Of its 40 examples, 25 rely on train-split families, 6 on validation and 9 on test (V010–V013, V027–V029, V039, V040). Comparisons on the M5 benchmark after training should be read with that in mind.
+
+### Composition
+
+1,271 examples: 558 SUPPORTED, 449 CONTRADICTED, 264 INSUFFICIENT_EVIDENCE; 645 sentence, 626 full_section. 527 of 609 included claims appear in both formats, which allows a paired sentence-vs-section comparison.
+
+| Phenomenon | Examples (S / C / I) |
+|---|---|
+| direct | 288 (288 / 0 / 0) |
+| numerical | 192 (0 / 192 / 0) |
+| negation | 125 (66 / 59 / 0) |
+| missing_information | 121 (0 / 0 / 121) |
+| multi_condition | 117 (99 / 18 / 0) |
+| condition | 103 (0 / 103 / 0) |
+| distractor_sentence | 89 (0 / 0 / 89) |
+| exception | 74 (25 / 49 / 0) |
+| similar_policy | 72 (6 / 24 / 42) |
+| paraphrase | 68 (68 / 0 / 0) |
+| multi_sentence_partial | 12 (0 / 0 / 12) |
+| multi_sentence | 10 (6 / 4 / 0) |
+
+**Token lengths** (evidence + claim, M6.1 tokenizer from the local cache): sentence mean 43 and max 75; full section mean 103 and max 184. **No pair is anywhere near the 512-token limit.**
+
+### Review workflow
+
+- **Starting status:** all 1,271 labels are `draft`, with label source "rule-generated from hand-authored fact specification (not human-reviewed)". Nothing is marked reviewed automatically.
+- **Review queue:** draft examples ordered by risk. Negations, numbers, exceptions, multi-sentence and similar-policy cases score higher, plus 4 points per automated flag.
+- **Automated flags:** 133 examples are flagged by heuristics:
+  - SUPPORTED with numbers not in the evidence;
+  - negation mismatch;
+  - scope terms missing from the evidence;
+  - low-overlap contradictions;
+  - insufficient-but-looks-supported;
+  - distractor overlap.
+
+  These prioritise review; they prove nothing either way. Most flagged items I inspected are correct, such as "a $3,000 purchase requires manager approval" against "up to $5,000". One genuine judgment call is in the queue: a lone sentence that says "the office" without naming it, against a claim that names the Customer Advocacy Office.
+- **Recording decisions:** human review, the shortcut audit and freezing live in `src/nli_review.py` (see the quality gate below). The draft dataset file is never changed by review.
+
+### Commands
+
+```bash
+python -m src.nli_dataset --generate --out data/nli/policy_nli_v1.jsonl --force
+python -m src.nli_dataset --validate --dataset data/nli/policy_nli_v1.jsonl
+python -m src.nli_dataset --audit --dataset data/nli/policy_nli_v1.jsonl --out data/nli/policy_nli_v1.audit.json
+python -m src.nli_dataset --review-queue --dataset data/nli/policy_nli_v1.jsonl --out data/nli/review_queue_v1.jsonl
+python -m src.nli_dataset --stats --dataset data/nli/policy_nli_v1.jsonl
+python -m unittest discover -s tests -p "test_nli_dataset.py"
+```
+
+- **Overwriting:** `--generate` refuses to overwrite without `--force` and refuses any path under `data/evaluations/`.
+- **Determinism check:** `--validate` regenerates from the facts file and fails unless the result is byte-identical. The draft file never contains review decisions.
+
+### Quality gate: human review, shortcut audit and freeze
+
+M6.3 must not train or evaluate on unreviewed labels. [src/nli_review.py](src/nli_review.py) adds a terminal review tool, a shortcut-learning audit and a freeze command. **No review decision has been recorded yet:** all 1,271 labels are AI-authored drafts, and nothing is ever recorded on a reviewer's behalf.
+
+```bash
+export RAGFORGE_REVIEWER="Your Name"            # or pass --reviewer each time
+python -m src.nli_review --plan                  # what must be reviewed, in what order
+python -m src.nli_review --review                # start, or resume where you stopped
+python -m src.nli_review --status                # progress and freeze readiness
+python -m src.nli_review --history nli-0123456789ab
+python -m src.nli_review --redo nli-0123456789ab # replace a decision (reason required; history kept)
+python -m src.nli_review --shortcut-audit        # writes data/nli/shortcut_audit_v1.json
+python -m src.nli_review --freeze --version v1.0 # refuses until review is complete
+python -m src.nli_review --verify-frozen v1.0    # re-check a frozen version's file hashes
+```
+
+**Review plan,** de-duplicated by example ID: the 70 highest-risk examples (priority ≥ 6; 60 train and 10 test), then all 190 validation examples, then all 196 test examples. That is **446 unique examples** (10 overlaps). Another **48 flagged training examples** fall outside the plan; reviewing them is optional.
+
+**Each screen shows:**
+- the example ID, groups, split, policy family, section, evidence format and phenomenon;
+- the automated warnings;
+- the evidence, the claim, the proposed AI label and its rationale;
+- the full original section;
+- progress overall and per group.
+
+**One key per decision:**
+- `a` accept;
+- `c` correct (pick 1/2/3 for the new label, then give a reason);
+- `r` reject (reason required);
+- `s` skip (nothing recorded, so it comes back on resume);
+- `q` save and exit.
+
+Each decision is written and fsync'd immediately, so Ctrl-C loses nothing. Running `--review` again resumes at the first undecided example.
+
+**Integrity:**
+- **Separate log.** Decisions go to `data/nli/reviews.jsonl`, an append-only log separate from the immutable drafts.
+- **Full record.** Each record keeps the AI label, the human label (none for a rejection), the reviewer, a UTC timestamp, the reason and the example's content fingerprint.
+- **Tamper detection.** Records are hash-chained, so editing, reordering or deleting a past line makes every command refuse to run.
+- **One decision per example.** A decided example cannot be decided again except with `--redo`, which needs a reason and records which decision it supersedes.
+- **Stale decisions.** If an example's content changes, its decision is reported as stale and blocks freezing.
+- **Explicit only.** Automated checks never mark anything reviewed.
+
+**Freeze** (`--freeze --version vX.Y`) refuses, listing every reason, unless:
+- every validation and test example has an explicit human decision (accepted or corrected examples are kept; rejected ones are excluded and listed);
+- the draft file still regenerates byte-for-byte from the facts file;
+- no decision is stale;
+- the reviewed set passes the dataset validation and every cross-split leakage check;
+- the version directory does not already exist (frozen versions are never overwritten).
+
+On success it writes `data/nli/frozen/<version>/` atomically:
+- `train.jsonl`, `validation.jsonl`, `test.jsonl`;
+- `excluded.jsonl`;
+- `reviews.snapshot.jsonl`;
+- `manifest.json`.
+
+The manifest records:
+- hashes of the facts file, every document, the draft dataset, the review log and its chain head, the effective decisions, and every output file;
+- counts by split × evidence format × label;
+- review status by split;
+- reviewers;
+- leakage results.
+
+The output files are read-only, and `--verify-frozen` re-checks them. Training examples may remain drafts; the manifest says how many.
+
+### Shortcut-learning audit (draft labels)
+
+From `python -m src.nli_review --shortcut-audit`. Nothing was rewritten.
+
+| Phenomenon | n | SUPPORTED | CONTRADICTED | INSUFFICIENT | |
+|---|---|---|---|---|---|
+| direct | 288 | 288 | 0 | 0 | single label |
+| numerical | 192 | 0 | 192 | 0 | single label |
+| negation | 125 | 66 | 59 | 0 | |
+| missing_information | 121 | 0 | 0 | 121 | single label |
+| multi_condition | 117 | 99 | 18 | 0 | |
+| condition | 103 | 0 | 103 | 0 | single label |
+| distractor_sentence | 89 | 0 | 0 | 89 | single label |
+| exception | 74 | 25 | 49 | 0 | |
+| similar_policy | 72 | 6 | 24 | 42 | |
+| paraphrase | 68 | 68 | 0 | 0 | single label |
+| multi_sentence_partial | 12 | 0 | 0 | 12 | single label |
+| multi_sentence | 10 | 6 | 4 | 0 | |
+
+Phenomenon tags are partly defined by label (a "direct" example *is* a supported restatement), and a model never sees them. What it can exploit are surface cues in the text:
+
+| Text cue | n | Dominant label |
+|---|---|---|
+| claim is a near-verbatim copy of the evidence (overlap ≥ 0.95) | 392 | SUPPORTED 90% |
+| content-word overlap < 0.4 | 143 | INSUFFICIENT 90% |
+| a scope term in the claim is absent from the evidence | 106 | INSUFFICIENT 86% |
+| claim has numbers not in the evidence | 331 | CONTRADICTED 55% (S 30, I 119) |
+| claim contains a negation | 217 | SUPPORTED 57% |
+| evidence format: sentence / full section | 645 / 626 | INSUFFICIENT 28% vs 14% |
+| claim length | — | mean 13.4 / 12.4 / 12.5 words (S / C / I): no length cue |
+
+- **Cue-only baseline.** A rule that predicts the majority training label for each combination of surface cues (number mismatch, verbatim copy, negation, overlap band, evidence format) and never reads meaning reaches **0.758 on validation and 0.730 on test**. The majority class reaches 0.468 and 0.464.
+- **Implication for M6.3.** Any trained model must be reported against this cue-only baseline and broken down by phenomenon. A model that merely matches it has learned shortcuts.
+
+**Recommendations (not applied):**
+- Add CONTRADICTED and INSUFFICIENT claims that copy the evidence almost verbatim but change one decisive detail.
+- Add INSUFFICIENT claims with high overlap (same topic, unstated detail).
+- Add SUPPORTED claims that correctly restate or instantiate numbers and conditions.
+- Add CONTRADICTED and unsupported paraphrases.
+- Add more multi-sentence claims.
+
+Each new claim must be hand-written and reviewed like the rest. Distractor and partial-evidence examples are label-pure by construction and should be reported separately rather than rebalanced.
+
+**Measured against draft labels.** The cue-only baseline (0.758 validation, 0.730 test) and every table above use the AI-authored draft labels, not human-verified ones. Corrections found in review would change these numbers slightly.
+
+### Random quality audit and experimental freeze
+
+Reviewing all 446 queued examples is the route to a *verified* dataset; that is the strict `--freeze` above, which is unchanged. For exploratory M6.3 fine-tuning, there is a lighter path: estimate label quality on a random sample, then freeze the AI-labeled data with that estimate recorded.
+
+```bash
+export RAGFORGE_REVIEWER="Your Name"
+python -m src.nli_review --sample                                   # write data/nli/audit_sample_v1.json
+python -m src.nli_review --review-sample                            # review the 50 examples (resumable)
+python -m src.nli_review --sample-report                            # agreement estimate and corrections
+python -m src.nli_review --status                                   # includes "Audit sample: n/50 decided"
+python -m src.nli_review --freeze-experimental --version v0.1-exp   # only after the sample is fully decided
+python -m src.nli_review --verify-frozen v0.1-exp                   # re-check file hashes
+```
+
+**The sample:**
+- **Size and seed:** 50 unique examples, seed 6203.
+- **Stratification:** proportional across split × AI label × evidence format, with every split, label and format guaranteed to appear.
+- **Selection:** uniform at random within each stratum. Review priority, automated flags and existing decisions play no part, so the sample does not favour easy or risky examples.
+- **Review order:** shuffled, so strata are not reviewed in blocks.
+- **Composition:** 36 train, 7 validation, 7 test; 23 SUPPORTED, 17 CONTRADICTED, 10 INSUFFICIENT_EVIDENCE; 26 sentence, 24 full section.
+- **Review interface:** `--review-sample` is the same one-key interface as `--review`. Decisions already in the log are reused, never repeated, and skipping records nothing.
+
+**The report:**
+- **Counts:** reviewed, accepted, corrected and rejected.
+- **Observed label agreement:** accepted ÷ (accepted + corrected), with a 95% Wilson interval. Rejections, which have no valid label, are reported separately, along with the acceptance rate.
+- **Breakdowns:** agreement by class, format and split.
+- **Lists:** every correction and rejection, and the remaining unreviewed counts.
+- **Scope:** it is a sample estimate, not proof. With 50 examples, a perfect result still has a lower 95% bound of about 93%.
+- **Warnings:** when agreement is below 90%, when anything is rejected, or when errors cluster in one class, format or split. It then recommends targeted review before training.
+- **Excluded from the estimate:** decisions made outside the sample, such as on the risk-ordered queue.
+
+**`--freeze-experimental` refuses unless:**
+- all 50 sampled examples have an explicit decision, and none was rejected (a rejection means a defective example: fix its fact and regenerate, or `--redo` it as a correction);
+- the draft file validates and regenerates byte-for-byte;
+- the review log's hash chain is intact and no decision is stale;
+- every cross-split leakage check passes;
+- the version ends in `-exp` and does not exist yet.
+
+**What it writes:** read-only `train.jsonl`, `validation.jsonl`, `test.jsonl`, `excluded.jsonl`, `reviews.snapshot.jsonl`, `audit_sample.json` and `manifest.json`.
+- **Manifest:** marked `"dataset_type": "experimental_ai_labeled_sample_audited"`. It records:
+  - the sample size, seed, allocation and results;
+  - reviewed, corrected, rejected and remaining-draft counts by split;
+  - source, review-log and decision hashes, and every file's hash;
+  - split, class and format distributions;
+  - leakage results and known limitations.
+- **Labels:**
+  - Corrections are applied, with `review.ai_label` keeping the original.
+  - Rejected examples are excluded.
+  - Every unreviewed example keeps status `draft` and a null `human_label`.
+
+**Using it in M6.3:**
+
+```python
+from src.nli_review import load_frozen
+
+train, manifest = load_frozen("v0.1-exp", "train")          # verifies every file hash first
+validation, _ = load_frozen("v0.1-exp", "validation")
+# load_frozen("v0.1-exp", "test") raises: the test split is reserved for one final evaluation
+```
+
+- **Verification on load:** `load_frozen` verifies the version's hashes before returning anything.
+- **Test split:** it refuses the test split unless `allow_test=True`, so test data cannot drift into training or model selection.
+- **Model selection:** use the validation split only, and compare every model against the cue-only baseline, broken down by phenomenon.
+
+**Limitations of AI-authored labels and sample auditing:**
+- Most labels in an experimental freeze are still AI drafts. The audit estimates the error rate; it does not find or fix the errors outside the sample.
+- 50 examples give a wide interval, and only about 7 validation and 7 test examples are sampled. Validation and test labels are therefore largely unverified, so treat their scores as provisional.
+- The labels and the claims share one author, so a reviewer may agree with systematic mistakes that look plausible.
+- The shortcut cues, the narrow 3-family validation and test splits, and the overlap with the M5 benchmark all remain.
+- For a verified benchmark, complete the strict review and use `--freeze`.
+
+### M6.2 limitations
+
+- **Draft labels.** One author (with AI assistance) wrote every claim and label, and no one has reviewed them. Systematic biases in that author's judgments would be invisible to the automated checks.
+- **Synthetic, uniform text.** Claims follow the corpus's vocabulary and sentence patterns, so a model may learn the style of these policies and of these claims rather than general verification.
+- **Few independent groups.** Validation and test contain 3 families each. The held-out estimate is narrow and noisy.
+- **Class balance.** INSUFFICIENT_EVIDENCE is about 20% of every split, and several phenomena are label-pure (`numerical` is all CONTRADICTED, `direct` all SUPPORTED). A model could exploit phenomenon-style cues, so M6.3 should report per-phenomenon results.
+- **Residual leakage.** Cross-family references and the shared corpus with the M5 benchmark remain (see above).
+- **Heuristic checks.** They catch numeric, negation, scope and overlap anomalies only; they do not verify meaning.
+
 ## Future Milestones (not implemented)
 
-- **M6**: Fine-tuning a small transformer-based evidence verifier
+- **M6.3–M6.4**: training the local verifier (pretrained vs frozen encoder vs full fine-tuning) and integration into M5
 - **M7**: Prompt-injection attacks and defenses
 - **M8**: Automated evaluation and ablation studies

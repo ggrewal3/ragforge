@@ -1,0 +1,1 @@
+{"example_id": "nli-8c297aecce26", "split": "train", "reason": "Claim lists refund as a remedy without preserving the condition that repair and replacement must be unavailable. Ambiguous entailment.", "reviewer": "Gursimran", "decision_id": "rev-a93c30fa694d"}

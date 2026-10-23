@@ -1,0 +1,415 @@
+{
+  "examples": 1271,
+  "note": "Phenomenon tags are partly defined by label (for example 'direct' means a supported restatement), so single-label phenomena are expected by construction. A model never sees these tags; the text cues below are what it can actually exploit. Nothing was rewritten.",
+  "phenomenon_by_label": {
+    "condition": {
+      "n": 103,
+      "SUPPORTED": 0,
+      "CONTRADICTED": 103,
+      "INSUFFICIENT_EVIDENCE": 0,
+      "dominant": "CONTRADICTED",
+      "dominant_share": 1.0,
+      "single_label": true
+    },
+    "direct": {
+      "n": 288,
+      "SUPPORTED": 288,
+      "CONTRADICTED": 0,
+      "INSUFFICIENT_EVIDENCE": 0,
+      "dominant": "SUPPORTED",
+      "dominant_share": 1.0,
+      "single_label": true
+    },
+    "distractor_sentence": {
+      "n": 89,
+      "SUPPORTED": 0,
+      "CONTRADICTED": 0,
+      "INSUFFICIENT_EVIDENCE": 89,
+      "dominant": "INSUFFICIENT_EVIDENCE",
+      "dominant_share": 1.0,
+      "single_label": true
+    },
+    "exception": {
+      "n": 74,
+      "SUPPORTED": 25,
+      "CONTRADICTED": 49,
+      "INSUFFICIENT_EVIDENCE": 0,
+      "dominant": "CONTRADICTED",
+      "dominant_share": 0.662,
+      "single_label": false
+    },
+    "missing_information": {
+      "n": 121,
+      "SUPPORTED": 0,
+      "CONTRADICTED": 0,
+      "INSUFFICIENT_EVIDENCE": 121,
+      "dominant": "INSUFFICIENT_EVIDENCE",
+      "dominant_share": 1.0,
+      "single_label": true
+    },
+    "multi_condition": {
+      "n": 117,
+      "SUPPORTED": 99,
+      "CONTRADICTED": 18,
+      "INSUFFICIENT_EVIDENCE": 0,
+      "dominant": "SUPPORTED",
+      "dominant_share": 0.846,
+      "single_label": false
+    },
+    "multi_sentence": {
+      "n": 10,
+      "SUPPORTED": 6,
+      "CONTRADICTED": 4,
+      "INSUFFICIENT_EVIDENCE": 0,
+      "dominant": "SUPPORTED",
+      "dominant_share": 0.6,
+      "single_label": false
+    },
+    "multi_sentence_partial": {
+      "n": 12,
+      "SUPPORTED": 0,
+      "CONTRADICTED": 0,
+      "INSUFFICIENT_EVIDENCE": 12,
+      "dominant": "INSUFFICIENT_EVIDENCE",
+      "dominant_share": 1.0,
+      "single_label": true
+    },
+    "negation": {
+      "n": 125,
+      "SUPPORTED": 66,
+      "CONTRADICTED": 59,
+      "INSUFFICIENT_EVIDENCE": 0,
+      "dominant": "SUPPORTED",
+      "dominant_share": 0.528,
+      "single_label": false
+    },
+    "numerical": {
+      "n": 192,
+      "SUPPORTED": 0,
+      "CONTRADICTED": 192,
+      "INSUFFICIENT_EVIDENCE": 0,
+      "dominant": "CONTRADICTED",
+      "dominant_share": 1.0,
+      "single_label": true
+    },
+    "paraphrase": {
+      "n": 68,
+      "SUPPORTED": 68,
+      "CONTRADICTED": 0,
+      "INSUFFICIENT_EVIDENCE": 0,
+      "dominant": "SUPPORTED",
+      "dominant_share": 1.0,
+      "single_label": true
+    },
+    "similar_policy": {
+      "n": 72,
+      "SUPPORTED": 6,
+      "CONTRADICTED": 24,
+      "INSUFFICIENT_EVIDENCE": 42,
+      "dominant": "INSUFFICIENT_EVIDENCE",
+      "dominant_share": 0.583,
+      "single_label": false
+    }
+  },
+  "single_label_phenomena": [
+    "condition",
+    "direct",
+    "distractor_sentence",
+    "missing_information",
+    "multi_sentence_partial",
+    "numerical",
+    "paraphrase"
+  ],
+  "cue_by_label": {
+    "numbers_not_in_evidence": {
+      "False": {
+        "n": 940,
+        "SUPPORTED": 528,
+        "CONTRADICTED": 267,
+        "INSUFFICIENT_EVIDENCE": 145,
+        "dominant": "SUPPORTED",
+        "dominant_share": 0.562
+      },
+      "True": {
+        "n": 331,
+        "SUPPORTED": 30,
+        "CONTRADICTED": 182,
+        "INSUFFICIENT_EVIDENCE": 119,
+        "dominant": "CONTRADICTED",
+        "dominant_share": 0.55
+      }
+    },
+    "claim_has_numbers": {
+      "False": {
+        "n": 547,
+        "SUPPORTED": 253,
+        "CONTRADICTED": 183,
+        "INSUFFICIENT_EVIDENCE": 111,
+        "dominant": "SUPPORTED",
+        "dominant_share": 0.463
+      },
+      "True": {
+        "n": 724,
+        "SUPPORTED": 305,
+        "CONTRADICTED": 266,
+        "INSUFFICIENT_EVIDENCE": 153,
+        "dominant": "SUPPORTED",
+        "dominant_share": 0.421
+      }
+    },
+    "direct_quotation": {
+      "False": {
+        "n": 879,
+        "SUPPORTED": 205,
+        "CONTRADICTED": 412,
+        "INSUFFICIENT_EVIDENCE": 262,
+        "dominant": "CONTRADICTED",
+        "dominant_share": 0.469
+      },
+      "True": {
+        "n": 392,
+        "SUPPORTED": 353,
+        "CONTRADICTED": 37,
+        "INSUFFICIENT_EVIDENCE": 2,
+        "dominant": "SUPPORTED",
+        "dominant_share": 0.901
+      }
+    },
+    "claim_has_negation": {
+      "False": {
+        "n": 1054,
+        "SUPPORTED": 434,
+        "CONTRADICTED": 385,
+        "INSUFFICIENT_EVIDENCE": 235,
+        "dominant": "SUPPORTED",
+        "dominant_share": 0.412
+      },
+      "True": {
+        "n": 217,
+        "SUPPORTED": 124,
+        "CONTRADICTED": 64,
+        "INSUFFICIENT_EVIDENCE": 29,
+        "dominant": "SUPPORTED",
+        "dominant_share": 0.571
+      }
+    },
+    "negation_differs_from_evidence": {
+      "False": {
+        "n": 777,
+        "SUPPORTED": 386,
+        "CONTRADICTED": 239,
+        "INSUFFICIENT_EVIDENCE": 152,
+        "dominant": "SUPPORTED",
+        "dominant_share": 0.497
+      },
+      "True": {
+        "n": 494,
+        "SUPPORTED": 172,
+        "CONTRADICTED": 210,
+        "INSUFFICIENT_EVIDENCE": 112,
+        "dominant": "CONTRADICTED",
+        "dominant_share": 0.425
+      }
+    },
+    "scope_terms_not_in_evidence": {
+      "False": {
+        "n": 1165,
+        "SUPPORTED": 557,
+        "CONTRADICTED": 435,
+        "INSUFFICIENT_EVIDENCE": 173,
+        "dominant": "SUPPORTED",
+        "dominant_share": 0.478
+      },
+      "True": {
+        "n": 106,
+        "SUPPORTED": 1,
+        "CONTRADICTED": 14,
+        "INSUFFICIENT_EVIDENCE": 91,
+        "dominant": "INSUFFICIENT_EVIDENCE",
+        "dominant_share": 0.858
+      }
+    },
+    "evidence_format": {
+      "full_section": {
+        "n": 626,
+        "SUPPORTED": 300,
+        "CONTRADICTED": 240,
+        "INSUFFICIENT_EVIDENCE": 86,
+        "dominant": "SUPPORTED",
+        "dominant_share": 0.479
+      },
+      "sentence": {
+        "n": 645,
+        "SUPPORTED": 258,
+        "CONTRADICTED": 209,
+        "INSUFFICIENT_EVIDENCE": 178,
+        "dominant": "SUPPORTED",
+        "dominant_share": 0.4
+      }
+    },
+    "claim_length": {
+      "15-20 words": {
+        "n": 363,
+        "SUPPORTED": 188,
+        "CONTRADICTED": 110,
+        "INSUFFICIENT_EVIDENCE": 65,
+        "dominant": "SUPPORTED",
+        "dominant_share": 0.518
+      },
+      "9-14 words": {
+        "n": 735,
+        "SUPPORTED": 284,
+        "CONTRADICTED": 293,
+        "INSUFFICIENT_EVIDENCE": 158,
+        "dominant": "CONTRADICTED",
+        "dominant_share": 0.399
+      },
+      "<=8 words": {
+        "n": 132,
+        "SUPPORTED": 62,
+        "CONTRADICTED": 40,
+        "INSUFFICIENT_EVIDENCE": 30,
+        "dominant": "SUPPORTED",
+        "dominant_share": 0.47
+      },
+      ">20 words": {
+        "n": 41,
+        "SUPPORTED": 24,
+        "CONTRADICTED": 6,
+        "INSUFFICIENT_EVIDENCE": 11,
+        "dominant": "SUPPORTED",
+        "dominant_share": 0.585
+      }
+    },
+    "content_overlap": {
+      "0.4-0.7": {
+        "n": 263,
+        "SUPPORTED": 40,
+        "CONTRADICTED": 122,
+        "INSUFFICIENT_EVIDENCE": 101,
+        "dominant": "CONTRADICTED",
+        "dominant_share": 0.464
+      },
+      "0.7-0.95": {
+        "n": 473,
+        "SUPPORTED": 163,
+        "CONTRADICTED": 277,
+        "INSUFFICIENT_EVIDENCE": 33,
+        "dominant": "CONTRADICTED",
+        "dominant_share": 0.586
+      },
+      "<0.4": {
+        "n": 143,
+        "SUPPORTED": 2,
+        "CONTRADICTED": 13,
+        "INSUFFICIENT_EVIDENCE": 128,
+        "dominant": "INSUFFICIENT_EVIDENCE",
+        "dominant_share": 0.895
+      },
+      ">=0.95": {
+        "n": 392,
+        "SUPPORTED": 353,
+        "CONTRADICTED": 37,
+        "INSUFFICIENT_EVIDENCE": 2,
+        "dominant": "SUPPORTED",
+        "dominant_share": 0.901
+      }
+    }
+  },
+  "high_purity_cues": [
+    {
+      "cue": "direct_quotation",
+      "value": "True",
+      "n": 392,
+      "SUPPORTED": 353,
+      "CONTRADICTED": 37,
+      "INSUFFICIENT_EVIDENCE": 2,
+      "dominant": "SUPPORTED",
+      "dominant_share": 0.901
+    },
+    {
+      "cue": "scope_terms_not_in_evidence",
+      "value": "True",
+      "n": 106,
+      "SUPPORTED": 1,
+      "CONTRADICTED": 14,
+      "INSUFFICIENT_EVIDENCE": 91,
+      "dominant": "INSUFFICIENT_EVIDENCE",
+      "dominant_share": 0.858
+    },
+    {
+      "cue": "content_overlap",
+      "value": "<0.4",
+      "n": 143,
+      "SUPPORTED": 2,
+      "CONTRADICTED": 13,
+      "INSUFFICIENT_EVIDENCE": 128,
+      "dominant": "INSUFFICIENT_EVIDENCE",
+      "dominant_share": 0.895
+    },
+    {
+      "cue": "content_overlap",
+      "value": ">=0.95",
+      "n": 392,
+      "SUPPORTED": 353,
+      "CONTRADICTED": 37,
+      "INSUFFICIENT_EVIDENCE": 2,
+      "dominant": "SUPPORTED",
+      "dominant_share": 0.901
+    }
+  ],
+  "mean_claim_words_by_label": {
+    "SUPPORTED": 13.4,
+    "CONTRADICTED": 12.4,
+    "INSUFFICIENT_EVIDENCE": 12.5
+  },
+  "label_by_format": {
+    "full_section": {
+      "n": 626,
+      "SUPPORTED": 300,
+      "CONTRADICTED": 240,
+      "INSUFFICIENT_EVIDENCE": 86,
+      "dominant": "SUPPORTED",
+      "dominant_share": 0.479
+    },
+    "sentence": {
+      "n": 645,
+      "SUPPORTED": 258,
+      "CONTRADICTED": 209,
+      "INSUFFICIENT_EVIDENCE": 178,
+      "dominant": "SUPPORTED",
+      "dominant_share": 0.4
+    }
+  },
+  "cue_only_baseline": {
+    "train": {
+      "n": 885,
+      "cue_rule_accuracy": 0.713,
+      "majority_class_accuracy": 0.427
+    },
+    "validation": {
+      "n": 190,
+      "cue_rule_accuracy": 0.758,
+      "majority_class_accuracy": 0.468
+    },
+    "test": {
+      "n": 196,
+      "cue_rule_accuracy": 0.73,
+      "majority_class_accuracy": 0.464
+    }
+  },
+  "recommendations": [
+    "condition: Add SUPPORTED claims that restate conditions correctly in new words, so 'condition mentioned' is not a contradiction cue.",
+    "direct: Add CONTRADICTED and INSUFFICIENT_EVIDENCE claims that copy most of the evidence wording but change one decisive detail, so near-verbatim wording is not a perfect support cue.",
+    "distractor_sentence: Distractors are INSUFFICIENT_EVIDENCE by construction; keep them, but report per-phenomenon accuracy so they cannot inflate the headline score.",
+    "missing_information: Add INSUFFICIENT_EVIDENCE claims with high word overlap with the evidence (same topic, unstated detail), so low overlap is not the only signal for missing information.",
+    "multi_sentence_partial: Partial-evidence examples are INSUFFICIENT_EVIDENCE by construction; add more multi-sentence claims so this group is not tiny.",
+    "numerical: Add SUPPORTED claims that restate or correctly instantiate numbers ('a $3,000 purchase' under 'up to $5,000') and INSUFFICIENT_EVIDENCE claims with numbers the evidence never mentions, so 'number changed' is not a perfect contradiction cue.",
+    "paraphrase: Add paraphrased claims that are CONTRADICTED or unsupported, not only supported ones.",
+    "Text cue direct_quotation=True predicts SUPPORTED for 90% of 392 examples; add counter-examples with the same cue and a different label.",
+    "Text cue scope_terms_not_in_evidence=True predicts INSUFFICIENT_EVIDENCE for 86% of 106 examples; add counter-examples with the same cue and a different label.",
+    "Text cue content_overlap=<0.4 predicts INSUFFICIENT_EVIDENCE for 90% of 143 examples; add counter-examples with the same cue and a different label.",
+    "Text cue content_overlap=>=0.95 predicts SUPPORTED for 90% of 392 examples; add counter-examples with the same cue and a different label.",
+    "A rule using only surface cues (number mismatch, verbatim overlap, negation, overlap, format) beats the majority class on held-out splits. In M6.3, report this cue-only baseline next to every model and break results down by phenomenon; a model that merely matches it has learned shortcuts."
+  ]
+}

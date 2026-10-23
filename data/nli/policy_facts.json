@@ -1,0 +1,6213 @@
+{
+ "version": "m6.2-facts-v1",
+ "description": "Hand-authored policy facts and claims for the RAGForge NLI dataset. Each fact names its decisive evidence with exact quotes from one section; each claim is [label, phenomenon, text, why] plus optional {\"q\": [quotes], \"scoped\": true}. Labels: S = SUPPORTED, C = CONTRADICTED, I = INSUFFICIENT_EVIDENCE. A claim's label must hold both against its decisive sentence(s) alone and against the full section. src/nli_dataset.py derives evidence formats and extra examples from this file.",
+ "authoring": {
+  "method": "Written by hand from data/documents/ text while implementing M6.2 (drafted with Claude Code). No model output was used to write or adjust labels.",
+  "status": "draft: not human-reviewed",
+  "conventions": [
+   "A claim that states a different value for a threshold, deadline, limit or approver that the evidence defines for the same rule is CONTRADICTED (consistent with the M5 verifier definitions).",
+   "Numeric contradictions are written in the direction that cannot be logically implied by the evidence (more lenient deadlines, higher permissions, different exact values).",
+   "A claim about a group or policy the evidence does not cover is INSUFFICIENT_EVIDENCE, never CONTRADICTED.",
+   "Claims marked scoped name their group explicitly, so they can be paired with a sibling policy's evidence as INSUFFICIENT_EVIDENCE.",
+   "Counterpart pairing is directional: a fact's scoped claims are paired with a sibling fact's evidence only when that evidence sentence names its own group explicitly (a universally worded sentence inside a group-specific policy could otherwise read as support or contradiction).",
+   "Facts marked sentence_context have a decisive sentence whose subject is only identified by the surrounding section; they get no sentence-format example, because the lone sentence would not establish the claim's scope."
+  ]
+ },
+ "families": {
+  "F01-refunds": {
+   "documents": [
+    "REF-728",
+    "REF-729"
+   ],
+   "why": "Near-duplicate domestic and international refund policies."
+  },
+  "F02-warranty": {
+   "documents": [
+    "WAR-731"
+   ],
+   "why": "Warranty claims."
+  },
+  "F03-shipping": {
+   "documents": [
+    "SHP-732"
+   ],
+   "why": "Shipping and delivery."
+  },
+  "F04-subscriptions": {
+   "documents": [
+    "SUB-730"
+   ],
+   "why": "Subscription cancellation."
+  },
+  "F05-support": {
+   "documents": [
+    "ESC-733"
+   ],
+   "why": "Support escalation."
+  },
+  "F06-expenses": {
+   "documents": [
+    "FIN-201",
+    "HR-106"
+   ],
+   "why": "Travel and non-travel expense claims share 30-day deadlines and $25 receipt rules."
+  },
+  "F07-purchasing": {
+   "documents": [
+    "FIN-202",
+    "FIN-204",
+    "FIN-205"
+   ],
+   "why": "Purchase, card and budget approval thresholds; FIN-204 restates FIN-202's $1,000 threshold."
+  },
+  "F08-payables": {
+   "documents": [
+    "FIN-203",
+    "FIN-206"
+   ],
+   "why": "Invoices and vendor payments."
+  },
+  "F09-leave": {
+   "documents": [
+    "HR-101",
+    "HR-104"
+   ],
+   "why": "Annual and parental leave notice and accrual rules."
+  },
+  "F10-workplace": {
+   "documents": [
+    "HR-102",
+    "HR-103"
+   ],
+   "why": "Remote work restates onboarding's first 4 weeks on-site."
+  },
+  "F11-development": {
+   "documents": [
+    "HR-105"
+   ],
+   "why": "Learning allowance and tuition."
+  },
+  "F12-authentication": {
+   "documents": [
+    "SEC-301",
+    "SEC-302"
+   ],
+   "why": "Passwords and MFA cross-reference each other."
+  },
+  "F13-classification": {
+   "documents": [
+    "SEC-303"
+   ],
+   "why": "Data classification."
+  },
+  "F14-incidents": {
+   "documents": [
+    "SEC-304",
+    "SEC-305"
+   ],
+   "why": "SEC-305 restates SEC-304's 1-hour reporting rule for lost devices."
+  },
+  "F15-third-party": {
+   "documents": [
+    "SEC-306"
+   ],
+   "why": "Third-party access."
+  }
+ },
+ "facts": [
+  {
+   "fact_id": "ESC-733.1-a",
+   "q": [
+    "Tier 2 specialists handle complex technical issues"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Tier 2 specialists handle billing disputes.",
+     "Billing disputes are listed as Tier 2 work."
+    ],
+    [
+     "C",
+     "condition",
+     "Billing disputes are handled by Tier 1 agents rather than Tier 2 specialists.",
+     "The evidence assigns billing disputes to Tier 2."
+    ],
+    [
+     "I",
+     "missing",
+     "Tier 2 specialists must resolve billing disputes within 5 business days.",
+     "No resolution deadline is given."
+    ]
+   ]
+  },
+  {
+   "fact_id": "ESC-733.1-b",
+   "q": [
+    "Enterprise customers are also assigned a named account manager"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "Each enterprise customer gets a named account manager who can coordinate escalations.",
+     "Restates the enterprise account-manager rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Enterprise customers are not assigned a named account manager.",
+     "The evidence says they are assigned one."
+    ],
+    [
+     "I",
+     "missing",
+     "Named account managers are assigned to all customers on paid plans.",
+     "Only enterprise customers are mentioned."
+    ]
+   ]
+  },
+  {
+   "fact_id": "ESC-733.2-a",
+   "q": [
+    "P1 cases involve a complete service outage"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "P1 cases have a first-response target of 1 hour, 24 hours a day.",
+     "Restates the P1 target."
+    ],
+    [
+     "C",
+     "numerical",
+     "P1 cases have a first-response target of 4 hours.",
+     "The P1 target is 1 hour."
+    ],
+    [
+     "C",
+     "condition",
+     "The P1 first-response target applies only during business hours.",
+     "The P1 target applies 24 hours a day."
+    ],
+    [
+     "I",
+     "missing",
+     "P1 cases must be fully resolved within 8 hours.",
+     "Only a first-response target is given, not a resolution time."
+    ]
+   ]
+  },
+  {
+   "fact_id": "ESC-733.2-b",
+   "q": [
+    "P2 cases involve major functionality loss"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "Cases with major functionality loss and no workaround get a first response within 4 business hours.",
+     "Paraphrases the P2 definition and target."
+    ],
+    [
+     "C",
+     "numerical",
+     "P2 cases have a first-response target of 1 business day.",
+     "The P2 target is 4 business hours."
+    ]
+   ]
+  },
+  {
+   "fact_id": "ESC-733.2-c",
+   "q": [
+    "P2 cases involve major functionality loss",
+    "P4 cases are general questions"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_sentence",
+     "A P2 case has a shorter first-response target than a P4 case.",
+     "4 business hours (P2) is shorter than 3 business days (P4)."
+    ],
+    [
+     "C",
+     "multi_sentence",
+     "A P4 general question has a shorter first-response target than a P2 case.",
+     "3 business days (P4) is longer than 4 business hours (P2)."
+    ]
+   ]
+  },
+  {
+   "fact_id": "ESC-733.3-a",
+   "q": [
+    "A Tier 1 agent must escalate a case to Tier 2"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "A Tier 1 agent must escalate a case to Tier 2 when it remains unresolved after 2 customer contacts or 48 hours, whichever comes first.",
+     "Restates the escalation rule."
+    ],
+    [
+     "S",
+     "multi_condition",
+     "A case still unresolved after two customer contacts must go to Tier 2 even if 48 hours have not yet passed.",
+     "Whichever comes first: two contacts alone trigger escalation."
+    ],
+    [
+     "C",
+     "multi_condition",
+     "A Tier 1 agent escalates a case to Tier 2 only once both 2 customer contacts and 48 hours have passed.",
+     "Either condition triggers escalation, not both."
+    ],
+    [
+     "C",
+     "numerical",
+     "A Tier 1 agent must escalate an unresolved case to Tier 2 after 72 hours.",
+     "Escalation is due after 48 hours at most."
+    ]
+   ]
+  },
+  {
+   "fact_id": "ESC-733.3-b",
+   "q": [
+    "Customers may ask to speak with a supervisor at any time"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "A customer's request to speak with a supervisor must be fulfilled within 1 business day.",
+     "Restates the supervisor rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Customers may ask to speak with a supervisor only after their case has been escalated.",
+     "Customers may ask at any time."
+    ],
+    [
+     "I",
+     "missing",
+     "Requests to speak with a supervisor must be made in writing.",
+     "The request format is not specified."
+    ]
+   ]
+  },
+  {
+   "fact_id": "ESC-733.4-a",
+   "q": [
+    "Compensation offered during escalation"
+   ],
+   "claims": [
+    [
+     "S",
+     "exception",
+     "Compensation offered during escalation is limited to 25 percent of the customer's monthly fee unless the Head of Customer Support approves more.",
+     "Restates the cap and its approval exception."
+    ],
+    [
+     "C",
+     "exception",
+     "Compensation offered during escalation can never exceed 25 percent of the customer's monthly fee, even with approval.",
+     "The Head of Customer Support can approve more."
+    ],
+    [
+     "C",
+     "numerical",
+     "Compensation offered during escalation is limited to 50 percent of the customer's monthly fee unless the Head of Customer Support approves more.",
+     "The cap is 25 percent."
+    ],
+    [
+     "I",
+     "missing",
+     "Service credits offered during escalation expire after 12 months.",
+     "No expiry is mentioned."
+    ]
+   ]
+  },
+  {
+   "fact_id": "ESC-733.4-b",
+   "q": [
+    "they may submit a formal complaint to the Customer Advocacy Office",
+    "The office acknowledges complaints within 2 business days"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_sentence",
+     "The Customer Advocacy Office issues a final written response to formal complaints within 10 business days.",
+     "The office named in one sentence gives the 10-day response in the next."
+    ],
+    [
+     "C",
+     "multi_sentence",
+     "The Customer Advocacy Office issues a final written response to formal complaints within 30 business days.",
+     "The final response is due within 10 business days."
+    ],
+    [
+     "S",
+     "direct",
+     "Complaints are acknowledged within 2 business days.",
+     "Restates the acknowledgement deadline.",
+     {
+      "q": [
+       "The office acknowledges complaints within 2 business days"
+      ]
+     }
+    ],
+    [
+     "I",
+     "missing",
+     "Formal complaints can also be submitted by phone.",
+     "The submission channel is not specified."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-201.1-a",
+   "q": [
+    "Trips booked with less than 14 days of notice"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "A trip booked 10 days before departure requires a short justification in the travel portal.",
+     "10 days is less than 14 days of notice."
+    ],
+    [
+     "C",
+     "negation",
+     "Trips booked with less than 14 days of notice do not need any justification.",
+     "They require a short justification."
+    ],
+    [
+     "I",
+     "missing",
+     "Trips booked with less than 14 days of notice require director approval.",
+     "No approval is mentioned for late bookings."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-201.1-b",
+   "q": [
+    "International travel requires approval from a department director"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "International travel requires approval from a department director before booking.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "International travel can be approved by a department director after the trip has been booked.",
+     "Approval is required before booking."
+    ],
+    [
+     "C",
+     "condition",
+     "International travel requires approval from a Vice President before booking.",
+     "The approver is a department director."
+    ],
+    [
+     "I",
+     "similar_policy",
+     "Domestic travel requires approval from a department director before booking.",
+     "Only international travel is covered."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-201.1-c",
+   "q": [
+    "Travel to countries rated high-risk"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Travel to countries rated high-risk by the Security team requires a travel security briefing before departure.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Travel to high-risk countries requires approval from the Chief Information Security Officer.",
+     "Only a briefing is required; no CISO approval is mentioned."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-201.2-a",
+   "q": [
+    "Business class is permitted for flights of 6 hours or longer"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Business class is permitted for flights of 6 hours or longer with Vice President approval.",
+     "Both conditions are stated."
+    ],
+    [
+     "C",
+     "multi_condition",
+     "Business class is permitted on flights of 6 hours or longer without any approval.",
+     "Vice President approval is required."
+    ],
+    [
+     "C",
+     "numerical",
+     "Business class is permitted for flights of 4 hours or longer with Vice President approval.",
+     "Flights under 6 hours are flown in economy.",
+     {
+      "q": [
+       "Employees fly economy class for flights with a scheduled duration under 6 hours"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-201.2-b",
+   "q": [
+    "Hotel stays are capped at $250 per night"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Hotel stays are capped at $350 per night in designated high-cost cities.",
+     "Restates the high-cost cap."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "In standard locations, the nightly hotel cap is $250.",
+     "Restates the standard cap."
+    ],
+    [
+     "C",
+     "similar_policy",
+     "Hotel stays in standard locations are capped at $350 per night.",
+     "$350 is the high-cost-city cap; standard locations are $250."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-201.2-c",
+   "q": [
+    "Bookings above the nightly cap require director approval"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Hotel bookings above the nightly cap require director approval before the stay.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Hotel bookings above the nightly cap can be approved by a director after the stay.",
+     "Approval is required before the stay."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-201.2-d",
+   "q": [
+    "Loyalty points earned during business travel may be kept"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Employees may keep loyalty points earned during business travel.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Loyalty points earned during business travel must be surrendered to the company.",
+     "Employees may keep them."
+    ],
+    [
+     "I",
+     "missing",
+     "Loyalty points earned during business travel may be redeemed for future business trips.",
+     "Redemption is not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-201.3-a",
+   "q": [
+    "While traveling overnight, employees receive a meal per diem"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "While traveling overnight, employees receive a meal per diem of $100 per day for international travel.",
+     "Restates the international rate."
+    ],
+    [
+     "C",
+     "similar_policy",
+     "International overnight travel comes with a $75 daily meal per diem.",
+     "$75 is the domestic rate; international is $100."
+    ],
+    [
+     "I",
+     "missing",
+     "Employees on day trips without an overnight stay receive half the meal per diem.",
+     "Only overnight travel is covered."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-201.3-b",
+   "q": [
+    "On the first and last days of travel"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "On the first and last days of travel, the meal per diem is reduced to 75 percent.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "On the first and last days of travel, the meal per diem is reduced to 50 percent.",
+     "It is reduced to 75 percent."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-201.3-c",
+   "q": [
+    "Per diem replaces itemized meal receipts"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Itemized meal receipts are not needed when claiming the per diem.",
+     "Per diem replaces itemized receipts."
+    ],
+    [
+     "C",
+     "negation",
+     "Itemized meal receipts must be submitted with every per diem claim.",
+     "Receipts are not required for per diem claims."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-201.3-d",
+   "q": [
+    "Meals provided by a conference or client are deducted"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "If a client provides a meal, it is deducted from the employee's per diem.",
+     "Client-provided meals are deducted."
+    ],
+    [
+     "C",
+     "negation",
+     "Meals provided by a conference are not deducted from the per diem.",
+     "Conference meals are deducted."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-201.4-a",
+   "q": [
+    "Travel expenses not charged to a corporate card must be claimed"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "Travel expenses paid without a corporate card must be claimed within 30 days of returning from the trip.",
+     "Restates the deadline."
+    ],
+    [
+     "C",
+     "numerical",
+     "Travel expenses not charged to a corporate card must be claimed within 60 days of returning from the trip.",
+     "The deadline is 30 days."
+    ],
+    [
+     "C",
+     "condition",
+     "Travel expenses not charged to a corporate card must be claimed within 30 days of booking the trip.",
+     "The 30 days run from returning, not booking."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-201.4-b",
+   "q": [
+    "Receipts are required for airfare, accommodation"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Receipts are required for any travel expense item above $25.",
+     "Restates the receipt threshold."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "A receipt is required for a hotel stay, whatever its cost.",
+     "Accommodation receipts are required regardless of amount."
+    ],
+    [
+     "C",
+     "numerical",
+     "Receipts are required only for travel expense items above $100.",
+     "The threshold is $25, and some categories always need receipts."
+    ]
+   ],
+   "sentence_context": "The receipt rule does not say it is for travel expenses."
+  },
+  {
+   "fact_id": "FIN-201.4-c",
+   "q": [
+    "Travel expense claims are approved by the traveler's manager"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "A travel claim of $6,000 for one trip needs the traveler's manager's approval and a review by Finance.",
+     "Claims over $5,000 per trip also need Finance review."
+    ],
+    [
+     "C",
+     "numerical",
+     "Travel claims need Finance review only when they exceed $10,000 per trip.",
+     "The Finance review threshold is $5,000."
+    ],
+    [
+     "I",
+     "missing",
+     "Travel claims over $5,000 per trip also require Vice President approval.",
+     "Only manager approval and Finance review are mentioned."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-202.1-a",
+   "q": [
+    "All purchases above $1,000 must be raised as a purchase requisition"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "All purchases above $1,000 must be raised as a purchase requisition before the supplier is engaged.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Only purchases above $5,000 must be raised as a purchase requisition.",
+     "The threshold is $1,000."
+    ],
+    [
+     "C",
+     "condition",
+     "A purchase requisition for a purchase above $1,000 may be raised after the supplier has been engaged.",
+     "It must be raised before the supplier is engaged."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-202.1-b",
+   "q": [
+    "A purchase order number is issued once the requisition is fully approved"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "A purchase order number is issued once the requisition is fully approved.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Purchase order numbers expire after 90 days.",
+     "No expiry is mentioned."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-202.2-a",
+   "q": [
+    "Purchases up to $5,000 require approval from the requester's manager"
+   ],
+   "counterpart": "FIN-205.3-a",
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Purchases up to $5,000 require approval from the requester's manager.",
+     "Restates the rule.",
+     {
+      "scoped": true
+     }
+    ],
+    [
+     "S",
+     "paraphrase",
+     "A $3,000 purchase requires approval from the requester's manager.",
+     "$3,000 is within the up-to-$5,000 band."
+    ],
+    [
+     "C",
+     "condition",
+     "Purchases up to $5,000 require approval from the Chief Financial Officer.",
+     "The approver for this band is the requester's manager.",
+     {
+      "scoped": true
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-202.2-b",
+   "q": [
+    "Purchases above $5,000 and up to $50,000 require approval"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "A $20,000 purchase requires approval from both the department director and the Procurement team.",
+     "$20,000 is in the $5,000-$50,000 band."
+    ],
+    [
+     "C",
+     "multi_condition",
+     "A $20,000 purchase can be approved by the department director without the Procurement team.",
+     "The Procurement team must also approve."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-202.2-c",
+   "q": [
+    "Purchases above $50,000 require approval from the Chief Financial Officer"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Purchases above $50,000 require approval from the Chief Financial Officer.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Purchases above $50,000 require approval from the Chief Financial Officer instead of the department director.",
+     "CFO approval is in addition to the director and Procurement."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-202.2-d",
+   "q": [
+    "Purchases must not be split into smaller requisitions"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Purchases must not be split into smaller requisitions to avoid a higher approval threshold.",
+     "Restates the prohibition."
+    ],
+    [
+     "C",
+     "negation",
+     "Splitting a purchase into smaller requisitions is allowed if each part stays under $5,000.",
+     "Splitting to avoid a threshold is prohibited."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-202.3-a",
+   "q": [
+    "Purchases above $25,000 require at least 3 written quotes"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Purchases above $25,000 require at least 3 written quotes from different suppliers.",
+     "Restates the rule."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "A $40,000 purchase needs written quotes from at least three different suppliers.",
+     "$40,000 is above $25,000."
+    ],
+    [
+     "C",
+     "numerical",
+     "Purchases up to $40,000 do not need written quotes.",
+     "Purchases above $25,000 need 3 written quotes."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-202.3-b",
+   "q": [
+    "Purchases above $100,000 require a formal competitive tender"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Purchases above $100,000 require a formal competitive tender managed by the Procurement team.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Purchases above $100,000 can use three written quotes instead of a formal competitive tender.",
+     "A formal tender is required."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-202.3-c",
+   "q": [
+    "A single-source exception may be approved by the Chief Financial Officer"
+   ],
+   "claims": [
+    [
+     "S",
+     "exception",
+     "The Chief Financial Officer may approve a single-source exception when only one supplier can provide the goods or services.",
+     "Restates the exception."
+    ],
+    [
+     "C",
+     "condition",
+     "A single-source exception may be approved by the department director.",
+     "The approver is the Chief Financial Officer."
+    ],
+    [
+     "I",
+     "missing",
+     "Single-source exceptions must be renewed every year.",
+     "No renewal is mentioned."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-202.4-a",
+   "q": [
+    "Contracts with a term longer than 12 months"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "A 24-month supplier contract must be reviewed by Legal before signature, even if its value is below $50,000.",
+     "Either a term over 12 months or a value over $50,000 triggers Legal review."
+    ],
+    [
+     "C",
+     "multi_condition",
+     "Contracts need Legal review only when they are both longer than 12 months and worth more than $50,000.",
+     "Either condition alone triggers Legal review."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-202.4-b",
+   "q": [
+    "Software and cloud services that will process Internal"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Software that will process Confidential data requires a security assessment before the purchase order is issued.",
+     "Confidential data is listed."
+    ],
+    [
+     "I",
+     "missing",
+     "Software that will process only Public data requires a security assessment.",
+     "Public data is not covered either way."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-202.4-c",
+   "q": [
+    "Only employees with delegated signing authority may sign"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Employees without delegated signing authority may not sign supplier contracts.",
+     "Only those with authority may sign."
+    ],
+    [
+     "C",
+     "condition",
+     "Any employee who raised the requisition may sign the supplier contract.",
+     "Only employees with delegated signing authority may sign."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-203.1-a",
+   "q": [
+    "Invoices without a valid purchase order number are returned"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Invoices without a valid purchase order number are returned to the supplier within 5 business days.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Invoices without a valid purchase order number are entered for payment while the number is requested.",
+     "They are not entered for payment."
+    ],
+    [
+     "C",
+     "numerical",
+     "Invoices without a valid purchase order number are returned to the supplier within 15 business days.",
+     "They are returned within 5 business days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-203.1-b",
+   "q": [
+    "Invoices must be issued in the currency stated on the purchase order"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Invoices must be issued in the currency stated on the purchase order.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Invoices in a foreign currency are converted at the exchange rate on the invoice date.",
+     "Conversion is not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-203.1-c",
+   "q": [
+    "All supplier invoices must be sent to the Accounts Payable mailbox"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Supplier invoices must include the supplier's legal name.",
+     "The legal name is a required field."
+    ],
+    [
+     "I",
+     "missing",
+     "Supplier invoices must include the supplier's bank account details.",
+     "Bank details are not listed, and the list is not stated to be exhaustive."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-203.2-a",
+   "q": [
+    "A variance of up to 5 percent or $500, whichever is lower"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Accounts Payable may approve a variance of up to 5 percent or $500, whichever is lower.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "multi_condition",
+     "Accounts Payable may approve any variance of up to 5 percent, even if it exceeds $500.",
+     "The lower of 5 percent and $500 applies."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-203.2-b",
+   "q": [
+    "Larger variances are sent to the budget owner"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The budget owner must resolve variances sent to them within 10 business days.",
+     "Restates the deadline."
+    ],
+    [
+     "C",
+     "numerical",
+     "The budget owner must resolve variances sent to them within 30 business days.",
+     "The deadline is 10 business days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-203.2-c",
+   "q": [
+    "The requester must confirm receipt of goods or services"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The requester must confirm receipt of goods in the procurement system within 5 business days of delivery.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Late receipt confirmations are escalated to the Finance Director.",
+     "Escalation is not mentioned."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-203.3-a",
+   "q": [
+    "The standard payment terms are net 30 days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The standard payment terms are net 30 days from the date a valid invoice is received.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "The standard payment terms are net 45 days from the date a valid invoice is received.",
+     "Standard terms are net 30."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-203.3-b",
+   "q": [
+    "Small suppliers registered under the company's small business program"
+   ],
+   "claims": [
+    [
+     "S",
+     "similar_policy",
+     "Small suppliers registered under the small business program are paid on net 15 terms.",
+     "Restates the small-supplier terms."
+    ],
+    [
+     "C",
+     "similar_policy",
+     "Small suppliers registered under the small business program are paid on net 30 terms.",
+     "Net 30 is standard; small suppliers get net 15."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-203.3-c",
+   "q": [
+    "Early payment discounts offered by a supplier are taken"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "An early payment discount of 3 percent is taken if the invoice has passed the three-way match.",
+     "3 percent meets the 2 percent minimum and the match condition holds."
+    ],
+    [
+     "C",
+     "multi_condition",
+     "Early payment discounts are taken whenever offered, even if the invoice has not passed the three-way match.",
+     "The invoice must have passed the three-way match."
+    ],
+    [
+     "C",
+     "numerical",
+     "Early payment discounts are taken only when the discount is at least 5 percent.",
+     "The minimum is 2 percent."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-203.3-d",
+   "q": [
+    "Disputed invoices are placed on hold"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Disputed invoices are placed on hold.",
+     "Restates the rule."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "When a corrected invoice arrives for a disputed invoice, the payment term starts again.",
+     "The term restarts on a corrected invoice."
+    ],
+    [
+     "C",
+     "condition",
+     "Disputed invoices are paid on the original due date while the dispute is resolved.",
+     "Disputed invoices are on hold and the term restarts."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-203.4-a",
+   "q": [
+    "Suspected duplicate invoices are blocked"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Suspected duplicate invoices are blocked until the supplier confirms in writing that the invoice is not a duplicate.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Suspected duplicate invoices are paid once the supplier confirms by phone that they are not duplicates.",
+     "Confirmation must be in writing."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-203.4-b",
+   "q": [
+    "Invoices received more than 12 months after"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Invoices received more than 12 months after the goods were delivered require Finance Director approval before payment.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Invoices received 18 months after delivery can be paid without Finance Director approval.",
+     "Over 12 months requires Finance Director approval."
+    ],
+    [
+     "I",
+     "missing",
+     "Invoices received more than 12 months after delivery are paid without interest.",
+     "Interest is not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-204.1-a",
+   "q": [
+    "The standard card has a monthly limit of $5,000"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The standard corporate card has a single-transaction limit of $2,500.",
+     "Restates the limit."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "A standard corporate card can be used for up to $5,000 per month.",
+     "Restates the monthly limit."
+    ],
+    [
+     "C",
+     "numerical",
+     "The standard corporate card has a single-transaction limit of $5,000.",
+     "$5,000 is the monthly limit; single transactions are capped at $2,500."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-204.1-b",
+   "q": [
+    "Temporary limit increases of up to 30 days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The Finance Director may approve a temporary card limit increase of up to 30 days.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "The Finance Director may approve a temporary card limit increase lasting 90 days.",
+     "Increases last up to 30 days."
+    ],
+    [
+     "I",
+     "missing",
+     "Temporary card limit increases may raise the monthly limit to at most $10,000.",
+     "The size of increases is not stated."
+    ]
+   ],
+   "sentence_context": "'Temporary limit increases' does not name the corporate card."
+  },
+  {
+   "fact_id": "FIN-204.1-c",
+   "q": [
+    "Cards are issued in the employee's name"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Corporate cards must not be shared with anyone else.",
+     "Restates the prohibition."
+    ],
+    [
+     "C",
+     "negation",
+     "A corporate card may be shared with a colleague on the same team.",
+     "Cards must not be shared."
+    ]
+   ],
+   "sentence_context": "'Cards' does not say corporate cards."
+  },
+  {
+   "fact_id": "FIN-204.2-a",
+   "q": [
+    "Personal purchases are prohibited"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Personal purchases on the corporate card are prohibited even if the employee intends to repay them.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "exception",
+     "Personal purchases on the corporate card are allowed if the employee repays them within 30 days.",
+     "They are prohibited even with repayment."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-204.2-b",
+   "q": [
+    "Cash withdrawals are prohibited except during international travel"
+   ],
+   "claims": [
+    [
+     "S",
+     "exception",
+     "Cash withdrawals with the corporate card are allowed during international travel, up to $200 per trip.",
+     "Restates the exception and its limit."
+    ],
+    [
+     "C",
+     "exception",
+     "Cash withdrawals with the corporate card are allowed during domestic business travel.",
+     "Withdrawals are allowed only during international travel."
+    ],
+    [
+     "C",
+     "numerical",
+     "Cash withdrawals during international travel are limited to $500 per trip.",
+     "The limit is $200 per trip."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-204.2-c",
+   "q": [
+    "Splitting a purchase across several transactions"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Splitting a purchase across several transactions to stay under the single-transaction limit is a policy violation.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "A first violation for split transactions results in a written warning.",
+     "Consequences are not stated here."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-204.3-a",
+   "q": [
+    "Cardholders must upload an itemized receipt"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Cardholders must upload an itemized receipt for every card transaction within 10 business days of the transaction date.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Cardholders have 30 business days to upload a receipt for a card transaction.",
+     "The deadline is 10 business days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-204.3-b",
+   "q": [
+    "Each cardholder must complete the monthly reconciliation"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Each cardholder must complete the monthly reconciliation by the 5th business day of the following month.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Each cardholder must complete the monthly reconciliation by the 10th business day of the following month.",
+     "The deadline is the 5th business day."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-204.3-c",
+   "q": [
+    "Missing receipts must be replaced with a signed missing receipt declaration"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "A signed missing receipt declaration is permitted at most 3 times per year.",
+     "Restates the limit."
+    ],
+    [
+     "C",
+     "numerical",
+     "A signed missing receipt declaration may be used up to 6 times per year.",
+     "The limit is 3 per year."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-204.4-a",
+   "q": [
+    "Lost or stolen corporate cards must be reported"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Lost corporate cards must be reported to the card issuer and to Finance no later than 24 hours after the loss is discovered.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Lost corporate cards must be reported within 72 hours of discovering the loss.",
+     "The limit is 24 hours."
+    ],
+    [
+     "C",
+     "condition",
+     "Lost corporate cards only need to be reported to the card issuer, not to Finance.",
+     "They must be reported to both."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-204.4-b",
+   "q": [
+    "Cardholders whose reconciliation is overdue by more than 30 days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Cards are suspended when the cardholder's reconciliation is overdue by more than 30 days.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Cardholders are notified by email before their card is suspended.",
+     "Notification is not mentioned."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-204.4-c",
+   "q": [
+    "Repeated personal use or a second suspension within 12 months"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "A second card suspension within 12 months results in permanent card cancellation.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "A third card suspension within 12 months is required before a card is permanently cancelled.",
+     "A second suspension already leads to cancellation."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-205.1-a",
+   "q": [
+    "Each department submits its proposed operating and capital budgets"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Departments submit their proposed budgets for the next fiscal year by September 30.",
+     "Restates the deadline."
+    ],
+    [
+     "C",
+     "numerical",
+     "Departments submit their proposed budgets for the next fiscal year by October 31.",
+     "The deadline is September 30."
+    ],
+    [
+     "I",
+     "missing",
+     "Departments that miss the September 30 deadline receive the previous year's budget.",
+     "Consequences of missing the deadline are not stated."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-205.1-b",
+   "q": [
+    "The board of directors approves the final annual budget"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The board of directors approves the final annual budget by December 15.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "The executive team approves the final annual budget.",
+     "The board of directors approves it.",
+     {
+      "q": [
+       "The board of directors approves the final annual budget"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-205.1-c",
+   "q": [
+    "Each department submits its proposed operating and capital budgets",
+    "before the fiscal year begins on January 1"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_sentence",
+     "Budget proposals are due three months before the fiscal year begins.",
+     "September 30 is three months before January 1."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-205.2-a",
+   "q": [
+    "Each cost center has a single named budget owner"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Each cost center has a single named budget owner.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Each cost center has two budget owners, a director and a Finance partner.",
+     "There is a single budget owner."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-205.2-b",
+   "q": [
+    "must explain any variance greater than 10 percent"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Budget owners must explain any variance greater than 10 percent of the monthly budget within 10 business days of receiving the report.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Budget owners must explain a variance of more than 10 percent within 30 business days of receiving the report.",
+     "The deadline is 10 business days."
+    ],
+    [
+     "I",
+     "missing",
+     "Variances greater than 10 percent must also be reported to the Chief Financial Officer.",
+     "CFO reporting is not mentioned."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-205.3-a",
+   "q": [
+    "Budget owners may reallocate up to $10,000"
+   ],
+   "counterpart": "FIN-202.2-a",
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Budget owners may reallocate up to $10,000 between expense lines within their own cost center without further approval.",
+     "Restates the rule.",
+     {
+      "scoped": true
+     }
+    ],
+    [
+     "C",
+     "condition",
+     "Budget owners may reallocate up to $10,000 between cost centers without further approval.",
+     "Any reallocation between cost centers needs Finance Director approval.",
+     {
+      "q": [
+       "or any reallocation between cost centers"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-205.3-b",
+   "q": [
+    "Reallocations above $10,000 and up to $100,000"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "A $50,000 reallocation within a cost center requires Finance Director approval.",
+     "$50,000 is in the $10,000-$100,000 band."
+    ],
+    [
+     "C",
+     "numerical",
+     "A $50,000 reallocation within a cost center can be made by the budget owner without further approval.",
+     "Only up to $10,000 needs no approval."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-205.3-c",
+   "q": [
+    "Any single unbudgeted commitment above $250,000"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "A single unbudgeted commitment of $300,000 must also be approved by the board of directors.",
+     "$300,000 is above $250,000."
+    ],
+    [
+     "C",
+     "numerical",
+     "Only unbudgeted commitments above $500,000 must be approved by the board of directors.",
+     "The board threshold is $250,000."
+    ],
+    [
+     "S",
+     "direct",
+     "Unbudgeted spending above $100,000 requires approval from the Chief Financial Officer.",
+     "Restates the CFO threshold.",
+     {
+      "q": [
+       "Reallocations or unbudgeted spending above $100,000"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-205.4-a",
+   "q": [
+    "Capital expenditure requests above $20,000"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Capital expenditure requests above $20,000 require a business case.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Capital expenditure requests above $20,000 require Chief Financial Officer approval.",
+     "Only a business case is required here."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-205.4-b",
+   "q": [
+    "Unspent operating budget does not carry over"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Unspent operating budget does not carry over to the next fiscal year.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Unspent operating budget carries over to the next fiscal year.",
+     "It does not carry over."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-205.4-c",
+   "q": [
+    "Purchase orders must be raised by November 30"
+   ],
+   "claims": [
+    [
+     "S",
+     "exception",
+     "Purchase orders must be raised by November 30 to be charged against the current year's budget unless the Finance Director grants an exception.",
+     "Restates the rule and exception."
+    ],
+    [
+     "C",
+     "exception",
+     "Purchase orders raised after November 30 can never be charged to the current year's budget.",
+     "The Finance Director can grant an exception."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-206.1-a",
+   "q": [
+    "The Vendor Master Data team completes setup"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The Vendor Master Data team completes vendor setup within 5 business days of receiving a complete form.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "The Vendor Master Data team completes vendor setup within 15 business days of receiving a complete form.",
+     "Setup takes up to 5 business days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-206.1-b",
+   "q": [
+    "Employees may not set up or change vendor records"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Employees may not set up vendor records for suppliers they manage.",
+     "Restates the prohibition."
+    ],
+    [
+     "C",
+     "exception",
+     "Employees may change vendor records for suppliers they manage if their manager approves.",
+     "No such exception exists; they may not change them."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-206.1-c",
+   "q": [
+    "Vendor setup requires a completed vendor form"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Vendor setup requires sanctions screening.",
+     "Sanctions screening is listed."
+    ],
+    [
+     "I",
+     "missing",
+     "Vendor setup requires a credit check.",
+     "A credit check is not mentioned."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-206.2-a",
+   "q": [
+    "Every change must be verified by a callback"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Bank detail changes must be verified by calling a phone number already held in the vendor record.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Bank detail changes may be verified by calling the phone number provided in the change request.",
+     "That number must never be used."
+    ]
+   ],
+   "sentence_context": "'Every change' does not say bank detail changes."
+  },
+  {
+   "fact_id": "FIN-206.2-b",
+   "q": [
+    "The first payment after a bank detail change is limited to $10,000"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The first payment after a bank detail change is limited to $10,000 until the vendor confirms receipt.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "The first payment after a bank detail change is limited to $25,000 until the vendor confirms receipt.",
+     "The limit is $10,000."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-206.2-c",
+   "q": [
+    "Changes take effect only after a second member"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "A bank detail change takes effect only after a second member of the Vendor Master Data team approves the verification.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Bank detail changes take effect within 1 business day of approval.",
+     "Timing is not stated."
+    ]
+   ],
+   "sentence_context": "'Changes' does not say bank detail changes."
+  },
+  {
+   "fact_id": "FIN-206.3-a",
+   "q": [
+    "Vendor payments are released in scheduled payment runs"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Vendor payments are released in scheduled payment runs every Tuesday and Thursday.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Vendor payments are released in a single weekly payment run on Fridays.",
+     "Runs are on Tuesdays and Thursdays."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-206.3-b",
+   "q": [
+    "Wire transfers are used only for international vendors"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Wire transfers are used only for international vendors or for urgent payments approved by the Finance Director.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Wire transfers are the standard payment method for domestic vendors.",
+     "Wires are only for international vendors or approved urgent payments."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-206.3-c",
+   "q": [
+    "Every payment run above $25,000 in total"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "A single wire transfer of $30,000 requires dual approval by two authorized Treasury signatories.",
+     "Single wires above $25,000 need dual approval."
+    ],
+    [
+     "C",
+     "numerical",
+     "Dual approval is required only for payment runs above $100,000 in total.",
+     "The threshold is $25,000."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-206.3-d",
+   "q": [
+    "Payments by check are issued only when"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Payments by check are issued only when a vendor cannot accept electronic payment.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Checks are mailed within 2 business days of the payment run.",
+     "Mailing time is not stated."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-206.4-a",
+   "q": [
+    "Urgent off-cycle vendor payments require Finance Director approval"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Urgent off-cycle vendor payments require Finance Director approval and a written explanation.",
+     "Both are required."
+    ],
+    [
+     "C",
+     "multi_condition",
+     "Urgent off-cycle vendor payments require only a written explanation, without Finance Director approval.",
+     "Finance Director approval is also required."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-206.4-b",
+   "q": [
+    "Manual payments outside the finance system are prohibited"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Manual payments outside the finance system are prohibited.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "exception",
+     "Manual payments outside the finance system are allowed for urgent payments.",
+     "They are prohibited without exception."
+    ]
+   ]
+  },
+  {
+   "fact_id": "FIN-206.4-c",
+   "q": [
+    "Vendors that have had no payment activity for 18 months"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Vendors with no payment activity for 18 months are deactivated.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Vendors are deactivated after 12 months without payment activity.",
+     "The threshold is 18 months."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-101.1-a",
+   "q": [
+    "All full-time employees accrue annual leave from their first day"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Full-time employees accrue 20 working days of annual leave per calendar year.",
+     "Restates the total."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "Full-time employees start accruing annual leave on their first day of employment.",
+     "Accrual starts on the first day."
+    ],
+    [
+     "C",
+     "numerical",
+     "Full-time employees accrue 25 working days of annual leave per calendar year.",
+     "The total is 20 working days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-101.1-b",
+   "q": [
+    "Public holidays are granted separately"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Public holidays do not count against the annual leave balance.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Public holidays are deducted from the annual leave balance.",
+     "They do not count against it."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-101.1-c",
+   "q": [
+    "Part-time employees accrue annual leave on a pro-rata basis"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Part-time employees accrue annual leave on a pro-rata basis according to their contracted hours.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "multi_sentence",
+     "Part-time employees accrue the same 20 days of annual leave per year as full-time employees.",
+     "Part-time accrual is pro-rata, not the full-time 20 days.",
+     {
+      "q": [
+       "All full-time employees accrue annual leave from their first day",
+       "Part-time employees accrue annual leave on a pro-rata basis"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-101.2-a",
+   "q": [
+    "Requests for more than three consecutive working days"
+   ],
+   "counterpart": "HR-104.3-a",
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Annual leave requests for more than three consecutive working days require at least 10 business days of notice.",
+     "Restates the rule.",
+     {
+      "scoped": true
+     }
+    ],
+    [
+     "C",
+     "numerical",
+     "Annual leave requests for more than three consecutive working days require at least 5 business days of notice.",
+     "The notice period is 10 business days.",
+     {
+      "scoped": true
+     }
+    ],
+    [
+     "S",
+     "multi_condition",
+     "A two-day annual leave request needs at least 2 business days of notice.",
+     "Requests of three or fewer days need 2 business days of notice.",
+     {
+      "q": [
+       "Requests for three or fewer consecutive working days"
+      ]
+     }
+    ]
+   ],
+   "sentence_context": "'Requests' does not say they are annual leave requests."
+  },
+  {
+   "fact_id": "HR-101.2-b",
+   "q": [
+    "Managers must approve or decline a request within 3 business days",
+    "A request that receives no response within that period"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Managers must approve or decline an annual leave request within 3 business days of submission.",
+     "Restates the deadline.",
+     {
+      "q": [
+       "Managers must approve or decline a request within 3 business days"
+      ]
+     }
+    ],
+    [
+     "S",
+     "multi_sentence",
+     "An annual leave request with no manager response within 3 business days is escalated automatically to the manager's director.",
+     "The 3-day period is defined in one sentence and the escalation in the next."
+    ],
+    [
+     "C",
+     "multi_sentence",
+     "An annual leave request with no manager response within 3 business days is approved automatically.",
+     "It is escalated to the director, not approved."
+    ]
+   ],
+   "sentence_context": "'a request' does not say it is an annual leave request."
+  },
+  {
+   "fact_id": "HR-101.2-c",
+   "q": [
+    "Leave may be declined during documented peak periods"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Managers who decline leave during a documented peak period must offer an alternative date range.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Leave requests can never be declined.",
+     "Leave may be declined during documented peak periods."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-101.3-a",
+   "q": [
+    "Employees may carry over a maximum of 5 unused annual leave days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Employees may carry over a maximum of 5 unused annual leave days into the next calendar year.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Employees may carry over up to 10 unused annual leave days into the next calendar year.",
+     "The maximum is 5."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-101.3-b",
+   "q": [
+    "Carried-over days must be used by March 31"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Carried-over annual leave days must be used by March 31 of the following year.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Carried-over annual leave days that are not used by March 31 are paid out.",
+     "They expire without payment."
+    ]
+   ],
+   "sentence_context": "'Carried-over days' does not say they are annual leave days."
+  },
+  {
+   "fact_id": "HR-101.3-c",
+   "q": [
+    "Days above the carryover limit expire on December 31"
+   ],
+   "claims": [
+    [
+     "S",
+     "exception",
+     "Days above the carryover limit expire on December 31 unless the Head of People approves an exception.",
+     "Restates the rule and exception."
+    ],
+    [
+     "C",
+     "exception",
+     "Days above the carryover limit always expire on December 31, with no exceptions.",
+     "The Head of People can approve an exception."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-101.3-d",
+   "q": [
+    "Exceptions must be requested in writing before December 1"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Carryover exceptions must be requested in writing before December 1.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Carryover exceptions are decided within 10 business days.",
+     "Decision time is not stated."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-101.4-a",
+   "q": [
+    "Members of the Finance department may not take annual leave"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Finance department members need Finance Director approval to take annual leave during the final 5 business days of a fiscal quarter.",
+     "Restates the blackout and its approval condition."
+    ],
+    [
+     "C",
+     "numerical",
+     "Finance department members may not take annual leave during the final 10 business days of a fiscal quarter without approval.",
+     "The blackout covers the final 5 business days."
+    ],
+    [
+     "I",
+     "similar_policy",
+     "Members of the HR department may not take annual leave during the final 5 business days of a fiscal quarter.",
+     "The blackout is stated only for the Finance department."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-101.4-b",
+   "q": [
+    "When employment ends, accrued but unused annual leave"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "When employment ends, accrued but unused annual leave for the current year is paid out in the final payroll.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Accrued but unused annual leave is forfeited when employment ends.",
+     "It is paid out."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-101.4-c",
+   "q": [
+    "Customer Support team leads coordinate holiday cover"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "At least 60 percent of the Customer Support team must be available during the November and December peak season.",
+     "Restates the cover rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "At least 80 percent of the Customer Support team must be available during the November and December peak season.",
+     "The minimum is 60 percent."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-101.4-d",
+   "q": [
+    "Annual leave cannot be used to shorten a contractual notice period"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Annual leave cannot be used to shorten a contractual notice period without written agreement from the manager.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "exception",
+     "Annual leave can always be used to shorten a contractual notice period.",
+     "It requires the manager's written agreement."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-102.1-a",
+   "q": [
+    "may work remotely up to 3 days per week"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Employees in hybrid-eligible roles may work remotely up to 3 days per week.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Employees in hybrid-eligible roles may work remotely up to 4 days per week.",
+     "The maximum is 3 days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-102.1-b",
+   "q": [
+    "Roles that require on-site equipment"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Warehouse positions are not hybrid-eligible.",
+     "Warehouse positions are listed as not eligible."
+    ],
+    [
+     "C",
+     "negation",
+     "Laboratory positions are hybrid-eligible.",
+     "Laboratory positions are not hybrid-eligible."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-102.1-c",
+   "q": [
+    "New employees work on-site for their first 4 weeks"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "New employees work on-site for their first 4 weeks.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "New employees may work remotely from their second week.",
+     "They work on-site for the first 4 weeks."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-102.2-a",
+   "q": [
+    "Fully remote arrangements require written approval"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Fully remote arrangements require written approval from both the employee's director and the People team.",
+     "Both approvals are required."
+    ],
+    [
+     "C",
+     "multi_condition",
+     "Fully remote arrangements require approval from the employee's manager only.",
+     "The director and the People team must approve."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-102.2-b",
+   "q": [
+    "Fully remote employees must live within the country"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Fully remote employees must attend in-person team events at least twice per year.",
+     "Restates the rule."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "A fully remote employee has to live in the country where they are employed.",
+     "Restates the residency rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Fully remote employees must attend in-person team events at least four times per year.",
+     "The minimum is twice per year."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-102.2-c",
+   "q": [
+    "Approval is reviewed every 12 months"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Fully remote approvals are reviewed every 12 months.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Fully remote employees receive a co-working space membership.",
+     "Not mentioned."
+    ]
+   ],
+   "sentence_context": "'Approval' does not say it is a fully remote approval."
+  },
+  {
+   "fact_id": "HR-102.3-a",
+   "q": [
+    "Employees may work temporarily from another country"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "Working from abroad is capped at 20 working days in any rolling 12-month period.",
+     "Paraphrases the limit."
+    ],
+    [
+     "C",
+     "numerical",
+     "Employees may work temporarily from another country for up to 40 working days per year.",
+     "The limit is 20 working days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-102.3-b",
+   "q": [
+    "Requests must be submitted at least 30 days before departure"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Requests to work from abroad must be approved by the manager, the People team, and the Security team.",
+     "All three approvals are required."
+    ],
+    [
+     "C",
+     "numerical",
+     "Requests to work from abroad must be submitted at least 7 days before departure.",
+     "The notice is at least 30 days."
+    ]
+   ],
+   "sentence_context": "'Requests' does not say they are work-from-abroad requests."
+  },
+  {
+   "fact_id": "HR-102.3-c",
+   "q": [
+    "Working from a country under trade sanctions is never permitted"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Working from a country under trade sanctions is never permitted.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "exception",
+     "Working from a country under trade sanctions is permitted with Security team approval.",
+     "It is never permitted."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-102.3-d",
+   "q": [
+    "Employees working abroad must keep Restricted data off their devices"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Employees working abroad must connect only through the company VPN.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Employees working abroad must use a company-provided mobile hotspot.",
+     "Not mentioned."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-102.4-a",
+   "q": [
+    "receive a one-time home office stipend of $400"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Hybrid and fully remote employees receive a one-time home office stipend of $400.",
+     "Restates the stipend."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "The home office stipend must be claimed within 90 days of the remote arrangement starting.",
+     "Restates the claim window."
+    ],
+    [
+     "C",
+     "numerical",
+     "Hybrid and fully remote employees receive a one-time home office stipend of $1,000.",
+     "The stipend is $400."
+    ],
+    [
+     "C",
+     "condition",
+     "The home office stipend is paid every year.",
+     "It is a one-time stipend."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-102.4-b",
+   "q": [
+    "Employees must work from a private space"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Employees must not use public Wi-Fi without the VPN.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Employees must use a privacy screen when working in public places.",
+     "Not mentioned."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-103.1-a",
+   "q": [
+    "The hiring manager submits an onboarding request"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The hiring manager submits an onboarding request at least 10 business days before the employee's start date.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "The hiring manager submits an onboarding request at least 3 business days before the employee's start date.",
+     "The lead time is at least 10 business days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-103.1-b",
+   "q": [
+    "Right-to-work documents must be verified"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Right-to-work documents must be verified no later than the employee's third working day.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Right-to-work documents may be verified at any time during the probation period.",
+     "They must be verified by the third working day."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-103.1-c",
+   "q": [
+    "Employees receive their welcome pack"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "New employees receive their welcome pack 5 business days before starting.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "New employees receive a company phone on their first day.",
+     "Not mentioned."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-103.2-a",
+   "q": [
+    "Mandatory security awareness training and data protection training",
+    "Accounts belonging to employees who do not complete mandatory training"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Mandatory security awareness training must be completed within 5 business days of the start date.",
+     "Restates the deadline.",
+     {
+      "q": [
+       "Mandatory security awareness training and data protection training"
+      ]
+     }
+    ],
+    [
+     "S",
+     "multi_sentence",
+     "A new employee who has not completed mandatory training within 5 business days of starting has their account restricted.",
+     "The deadline and the restriction are in consecutive sentences."
+    ],
+    [
+     "C",
+     "numerical",
+     "Mandatory security awareness training must be completed within 30 business days of the start date.",
+     "The deadline is 5 business days.",
+     {
+      "q": [
+       "Mandatory security awareness training and data protection training"
+      ]
+     }
+    ],
+    [
+     "C",
+     "condition",
+     "New employees who miss the mandatory training deadline have their accounts permanently disabled.",
+     "Accounts are restricted only until training is completed.",
+     {
+      "q": [
+       "Accounts belonging to employees who do not complete mandatory training"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-103.2-b",
+   "q": [
+    "Each new employee is assigned an onboarding buddy"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Each new employee is assigned an onboarding buddy from outside their direct reporting line.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "A new employee's onboarding buddy is their direct manager.",
+     "The buddy is from outside the reporting line."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-103.2-c",
+   "q": [
+    "On the first day, employees collect their laptop"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "New employees enroll in multi-factor authentication on their first day.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "New employees receive building access on their first day.",
+     "Building access is not mentioned in this evidence."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-103.3-a",
+   "q": [
+    "All new employees complete a 90-day probation period"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "All new employees complete a 90-day probation period.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "All new employees complete a 6-month probation period.",
+     "Probation is 90 days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-103.3-b",
+   "q": [
+    "The probation period may be extended once"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "The probation period may be extended once by up to 60 days if performance objectives are not yet met.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "The probation period may be extended twice.",
+     "It may be extended once."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-103.3-c",
+   "q": [
+    "During probation, the notice period for either party is 2 weeks"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "During probation, the notice period for either party is 2 weeks.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "During probation, the notice period for either party is 1 month.",
+     "It is 2 weeks."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-103.3-d",
+   "q": [
+    "Managers hold structured check-ins at 30, 60, and 90 days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Managers hold structured probation check-ins at 30, 60, and 90 days.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Probation check-ins must be attended by a People team representative.",
+     "Attendance is not specified."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-104.1-a",
+   "q": [
+    "Employees become eligible for paid parental leave"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Employees become eligible for paid parental leave after completing 6 months of continuous service.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Paid parental leave is available from an employee's first day of service.",
+     "Eligibility starts after 6 months."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-104.1-b",
+   "q": [
+    "Eligibility applies equally to birth parents"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Adoptive parents are eligible for paid parental leave on the same basis as birth parents.",
+     "Eligibility applies equally."
+    ],
+    [
+     "C",
+     "negation",
+     "Parents through surrogacy are not eligible for paid parental leave.",
+     "Surrogacy is explicitly included."
+    ]
+   ],
+   "sentence_context": "'Eligibility' does not say it is for paid parental leave."
+  },
+  {
+   "fact_id": "HR-104.1-c",
+   "q": [
+    "Employees with less than 6 months of service are entitled to unpaid parental leave"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Employees with less than 6 months of service may use accrued annual leave.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Employees with less than 6 months of service receive parental leave at half pay.",
+     "Their parental leave is unpaid."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-104.2-a",
+   "q": [
+    "Birth parents receive 16 weeks of parental leave"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Birth parents receive 16 weeks of parental leave at full base pay.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "similar_policy",
+     "Birth parents receive 12 weeks of parental leave at full base pay.",
+     "12 weeks is the non-birth entitlement; birth parents receive 16."
+    ],
+    [
+     "C",
+     "condition",
+     "Birth parents receive 16 weeks of parental leave at half pay.",
+     "The leave is at full base pay."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-104.2-b",
+   "q": [
+    "Non-birth parents and adoptive parents receive 12 weeks"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "Adoptive parents get 12 weeks of parental leave on full base pay.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "similar_policy",
+     "Adoptive parents receive 16 weeks of parental leave at full base pay.",
+     "16 weeks is the birth-parent entitlement."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-104.2-c",
+   "q": [
+    "Parental leave must be taken within 12 months"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Parental leave may be split into at most 2 blocks of at least 2 weeks each.",
+     "Restates the rule."
+    ],
+    [
+     "S",
+     "direct",
+     "Parental leave must be taken within 12 months of the birth or adoption placement.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Parental leave may be split into up to 4 blocks.",
+     "The maximum is 2 blocks."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-104.2-d",
+   "q": [
+    "Multiple births or adoptions at the same time do not increase"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "Having twins does not increase the parental leave entitlement.",
+     "Multiple births do not increase the entitlement."
+    ],
+    [
+     "C",
+     "negation",
+     "Multiple births increase the parental leave entitlement.",
+     "They do not."
+    ]
+   ],
+   "sentence_context": "'the entitlement' does not name parental leave."
+  },
+  {
+   "fact_id": "HR-104.2-e",
+   "q": [
+    "Parental leave does not reduce the employee's annual leave accrual"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Annual leave continues to accrue during parental leave.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Annual leave accrual stops during parental leave.",
+     "Accrual continues."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-104.3-a",
+   "q": [
+    "Employees must notify their manager and the People team at least 8 weeks"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Employees must notify their manager and the People team at least 8 weeks before the intended start of parental leave.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Employees must give at least 2 weeks of notice before starting parental leave.",
+     "The notice is at least 8 weeks."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-104.3-b",
+   "q": [
+    "During leave, employees may work up to 10 optional keep-in-touch days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "During parental leave, employees may work up to 10 optional keep-in-touch days at full pay.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "During parental leave, employees may work up to 20 keep-in-touch days.",
+     "The maximum is 10."
+    ],
+    [
+     "C",
+     "condition",
+     "Working a keep-in-touch day ends the employee's parental leave.",
+     "Keep-in-touch days do not end the leave."
+    ]
+   ],
+   "sentence_context": "'During leave' does not name parental leave."
+  },
+  {
+   "fact_id": "HR-104.3-c",
+   "q": [
+    "A written leave plan covering handover and coverage"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "A written leave plan is agreed with the manager at least 4 weeks before parental leave begins.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "The written leave plan must be approved by the People team.",
+     "Only agreement with the manager is mentioned."
+    ]
+   ],
+   "sentence_context": "'before leave begins' does not name parental leave."
+  },
+  {
+   "fact_id": "HR-104.4-a",
+   "q": [
+    "Returning parents may use a phased return"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Returning parents may work 60 percent of their normal schedule for up to 4 weeks while receiving full base pay.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "During a phased return, pay is reduced to 60 percent of base pay.",
+     "Pay stays at full base pay."
+    ],
+    [
+     "C",
+     "numerical",
+     "A phased return after parental leave may last up to 8 weeks.",
+     "It lasts up to 4 weeks."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-104.4-b",
+   "q": [
+    "Employees return to the same role"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Employees returning from parental leave return to the same role or an equivalent role with the same pay and seniority.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Employees returning from parental leave receive a one-time return bonus.",
+     "Not mentioned."
+    ]
+   ],
+   "sentence_context": "'Employees return' does not say from parental leave."
+  },
+  {
+   "fact_id": "HR-104.4-c",
+   "q": [
+    "Requests for flexible working after parental leave"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Requests for flexible working after parental leave must receive a decision within 20 business days.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Requests for flexible working after parental leave must receive a decision within 60 business days.",
+     "The deadline is 20 business days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-105.1-a",
+   "q": [
+    "Each employee who has passed probation receives an annual learning allowance"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Employees who have passed probation receive an annual learning allowance of $2,000.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Employees receive the annual learning allowance from their first day, during probation.",
+     "It is for employees who have passed probation."
+    ],
+    [
+     "C",
+     "numerical",
+     "The annual learning allowance is $5,000 per calendar year.",
+     "It is $2,000."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-105.1-b",
+   "q": [
+    "Employees also receive 3 paid learning days per year"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Employees receive 3 paid learning days per year.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Employees receive 5 paid learning days per year.",
+     "They receive 3."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-105.1-c",
+   "q": [
+    "Unused allowance does not carry over"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "Learning allowance left unspent at the end of the year is lost rather than carried over.",
+     "Unused allowance does not carry over."
+    ],
+    [
+     "I",
+     "missing",
+     "Unused paid learning days can be exchanged for annual leave.",
+     "Exchanging learning days is not addressed."
+    ]
+   ],
+   "sentence_context": "'Unused allowance' does not name the learning allowance."
+  },
+  {
+   "fact_id": "HR-105.2-a",
+   "q": [
+    "Employees may request up to an additional $1,500 per year"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Employees may request up to an additional $1,500 per year for certification exam fees when the certification relates to their current role.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Certification exam fees are covered for any certification, whether or not it relates to the employee's role.",
+     "The certification must relate to the current role."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-105.2-b",
+   "q": [
+    "The company pays for a maximum of 2 exam attempts"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The company pays for a maximum of 2 exam attempts per certification.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "The company pays for up to 3 exam attempts per certification.",
+     "The maximum is 2."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-105.2-c",
+   "q": [
+    "Manager approval must be obtained before registering"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Manager approval must be obtained before registering for a certification exam.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Manager approval for a certification exam can be obtained after the exam has been passed.",
+     "Approval is needed before registering."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-105.2-d",
+   "q": [
+    "Certification renewal fees are covered from the annual learning allowance"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Certification renewal fees are covered from the annual learning allowance.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Certification renewal fees are reimbursed only once every three years.",
+     "Frequency is not stated."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-105.3-a",
+   "q": [
+    "Employees with at least 12 months of service may apply for tuition assistance"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Employees with at least 12 months of service may apply for tuition assistance of up to $5,250 per calendar year.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Employees with at least 6 months of service may apply for tuition assistance.",
+     "The service requirement is 12 months."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-105.3-b",
+   "q": [
+    "Assistance is paid after the employee provides proof of a passing grade"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Tuition assistance is paid after the employee provides proof of a passing grade.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Tuition assistance is paid in advance, before the course begins.",
+     "It is paid after proof of a passing grade."
+    ]
+   ],
+   "sentence_context": "'Assistance' does not name tuition assistance."
+  },
+  {
+   "fact_id": "HR-105.3-c",
+   "q": [
+    "Employees who resign within 12 months of receiving tuition assistance"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Employees who resign within 12 months of receiving tuition assistance must repay 100 percent of the amount.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Employees who resign within 12 months of receiving tuition assistance must repay 50 percent of the amount.",
+     "They repay 100 percent; 50 percent applies between 12 and 24 months."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-105.3-d",
+   "q": [
+    "Repayment does not apply when employment ends due to redundancy"
+   ],
+   "claims": [
+    [
+     "S",
+     "exception",
+     "Employees whose employment ends due to redundancy do not have to repay tuition assistance.",
+     "Restates the exception."
+    ],
+    [
+     "I",
+     "missing",
+     "Employees who are dismissed for misconduct must repay tuition assistance in full.",
+     "Dismissal is not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-106.1-a",
+   "q": [
+    "Travel expenses, including flights, hotels, and per diem meals"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "Hotel costs for business travel are covered by the Travel Expense Policy rather than the Employee Expense Reimbursement Policy.",
+     "Hotels are travel expenses covered by FIN-201."
+    ],
+    [
+     "C",
+     "condition",
+     "Per diem meals while traveling are reimbursed under the Employee Expense Reimbursement Policy.",
+     "They are covered by the Travel Expense Policy."
+    ]
+   ],
+   "sentence_context": "The sentence does not name the Employee Expense Reimbursement Policy."
+  },
+  {
+   "fact_id": "HR-106.1-b",
+   "q": [
+    "Expenses charged to a corporate card are reconciled under FIN-204"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Expenses charged to a corporate card are not reimbursed under the Employee Expense Reimbursement Policy.",
+     "Restates the rule."
+    ]
+   ],
+   "sentence_context": "'this policy' is not named in the sentence."
+  },
+  {
+   "fact_id": "HR-106.1-c",
+   "q": [
+    "This policy covers out-of-pocket business expenses"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Business mileage is covered by the Employee Expense Reimbursement Policy.",
+     "Mileage is listed in scope."
+    ]
+   ],
+   "sentence_context": "'This policy' is not named in the sentence."
+  },
+  {
+   "fact_id": "HR-106.2-a",
+   "q": [
+    "Expense claims must be submitted in the expense system within 30 days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Expense claims must be submitted within 30 days of the date the expense was incurred.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Expense claims must be submitted within 90 days of the date the expense was incurred.",
+     "The deadline is 30 days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-106.2-b",
+   "q": [
+    "Expenses above $500 for a single item require pre-approval"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "A single item costing more than $500 requires pre-approval from the employee's manager before purchase.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "A single item costing more than $500 can be approved by the manager after it has been purchased.",
+     "Pre-approval is required."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-106.2-c",
+   "q": [
+    "Business mileage in a personal vehicle is reimbursed at $0.65 per mile"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Business mileage in a personal vehicle is reimbursed at $0.65 per mile.",
+     "Restates the rate."
+    ],
+    [
+     "C",
+     "numerical",
+     "Business mileage in a personal vehicle is reimbursed at $0.45 per mile.",
+     "The rate is $0.65."
+    ],
+    [
+     "I",
+     "missing",
+     "Mileage claims require a map screenshot of the route.",
+     "Only start point, destination and purpose are required."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-106.2-d",
+   "q": [
+    "Claims submitted more than 30 days late are rejected"
+   ],
+   "claims": [
+    [
+     "S",
+     "exception",
+     "Expense claims submitted more than 30 days late are rejected unless the employee's director approves a late-submission exception.",
+     "Restates the rule and exception."
+    ],
+    [
+     "C",
+     "exception",
+     "Expense claims submitted more than 30 days late are always rejected.",
+     "A director can approve an exception."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-106.3-a",
+   "q": [
+    "Managers must approve or reject submitted claims within 5 business days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Managers must approve or reject submitted expense claims within 5 business days.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Managers have 15 business days to approve or reject submitted expense claims.",
+     "The deadline is 5 business days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-106.3-b",
+   "q": [
+    "Claims that are rejected may be corrected and resubmitted once"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Rejected expense claims may be corrected and resubmitted once.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Rejected expense claims may be corrected and resubmitted up to three times.",
+     "They may be resubmitted once."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-106.3-c",
+   "q": [
+    "Alcohol, personal entertainment, traffic fines, and gifts to colleagues"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Traffic fines are never reimbursable.",
+     "Restates the rule."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "Gifts bought for colleagues cannot be reimbursed.",
+     "Gifts to colleagues are never reimbursable."
+    ],
+    [
+     "C",
+     "exception",
+     "Alcohol is reimbursable when it is part of a client meal.",
+     "Alcohol is never reimbursable."
+    ]
+   ]
+  },
+  {
+   "fact_id": "HR-106.3-d",
+   "q": [
+    "Approved claims are reimbursed with the next regular payroll run"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Approved expense claims are reimbursed with the next regular payroll run, provided approval is completed at least 3 business days before the payroll cutoff.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Expense claims approved after the payroll cutoff are paid by bank transfer within 2 days.",
+     "Not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-728.1-a",
+   "q": [
+    "Domestic customers, meaning customers whose delivery address"
+   ],
+   "counterpart": "REF-729.1-a",
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Domestic customers may request a refund within 30 days of delivery.",
+     "Restates the rule.",
+     {
+      "scoped": true
+     }
+    ],
+    [
+     "S",
+     "paraphrase",
+     "A customer whose delivery address is in the same country as the selling store has 30 days from delivery to request a refund.",
+     "Paraphrases the definition and the window."
+    ],
+    [
+     "C",
+     "numerical",
+     "Domestic customers may request a refund within 45 days of delivery.",
+     "The domestic window is 30 days.",
+     {
+      "scoped": true
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-728.1-b",
+   "q": [
+    "Final sale items, gift cards, downloadable software, and personalized products are non-refundable"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Gift cards bought by domestic customers are non-refundable.",
+     "Gift cards are listed as non-refundable."
+    ],
+    [
+     "C",
+     "negation",
+     "Downloadable software bought by domestic customers can be refunded within 30 days.",
+     "Downloadable software is non-refundable."
+    ]
+   ],
+   "sentence_context": "The non-refundable list does not name domestic customers."
+  },
+  {
+   "fact_id": "REF-728.1-c",
+   "q": [
+    "Refund requests are submitted through the online returns center or by contacting customer support"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "A refund request can be made by contacting customer support.",
+     "Contacting customer support is a listed channel."
+    ],
+    [
+     "I",
+     "missing",
+     "Refund requests must include a photo of the item.",
+     "Photos are not mentioned."
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-728.2-a",
+   "q": [
+    "Domestic customers receive a free prepaid return label"
+   ],
+   "counterpart": "REF-729.2-a",
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Domestic customers receive a free prepaid return label for every eligible return.",
+     "Restates the rule.",
+     {
+      "scoped": true
+     }
+    ],
+    [
+     "C",
+     "negation",
+     "Domestic customers must pay for return shipping on eligible returns.",
+     "They receive a free prepaid label.",
+     {
+      "scoped": true
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-728.2-b",
+   "q": [
+    "Items may also be returned in person at any company store"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Items may be returned in person at any company store.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Items returned in a store are refunded in cash.",
+     "The refund method for in-store returns is not stated."
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-728.2-c",
+   "q": [
+    "Customers who choose their own carrier pay that carrier's cost"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Customers who choose their own carrier for a return pay that carrier's cost.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "The company is responsible for returns lost before they reach the returns warehouse, even when the customer used their own carrier.",
+     "The company is not responsible for such returns."
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-728.3-a",
+   "q": [
+    "Domestic refunds are issued to the original payment method"
+   ],
+   "counterpart": "REF-729.3-a",
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Domestic refunds are issued to the original payment method within 5 business days after the returned item is received and inspected.",
+     "Restates the rule.",
+     {
+      "scoped": true
+     }
+    ],
+    [
+     "C",
+     "numerical",
+     "Domestic refunds are issued within 15 business days after the returned item is received and inspected.",
+     "The domestic limit is 5 business days.",
+     {
+      "scoped": true
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-728.3-b",
+   "q": [
+    "Opened electronics are subject to a 15 percent restocking fee"
+   ],
+   "claims": [
+    [
+     "S",
+     "exception",
+     "Opened electronics returned by domestic customers carry a 15 percent restocking fee unless the item is defective.",
+     "Restates the fee and its exception."
+    ],
+    [
+     "C",
+     "exception",
+     "A defective opened electronic item is charged a 15 percent restocking fee.",
+     "Defective items are exempt."
+    ],
+    [
+     "C",
+     "numerical",
+     "Opened electronics are subject to a 25 percent restocking fee unless the item is defective.",
+     "The fee is 15 percent."
+    ]
+   ],
+   "sentence_context": "The fee sentence does not name domestic customers."
+  },
+  {
+   "fact_id": "REF-728.3-c",
+   "q": [
+    "Customers may choose store credit instead of a refund"
+   ],
+   "counterpart": "REF-729.3-c",
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Domestic customers who choose store credit instead of a refund receive a 10 percent bonus.",
+     "Customers choosing store credit get a 10 percent bonus.",
+     {
+      "scoped": true
+     }
+    ],
+    [
+     "C",
+     "numerical",
+     "Customers who choose store credit instead of a refund receive a 20 percent bonus.",
+     "The bonus is 10 percent."
+    ]
+   ],
+   "sentence_context": "'Customers' does not say domestic customers."
+  },
+  {
+   "fact_id": "REF-728.3-d",
+   "q": [
+    "Original shipping charges are refunded only when"
+   ],
+   "claims": [
+    [
+     "S",
+     "exception",
+     "Original shipping charges are refunded only when the return is caused by a defect or a fulfillment error.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "exception",
+     "Original shipping charges are refunded for every domestic return.",
+     "Only for defects or fulfillment errors."
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-728.4-a",
+   "q": [
+    "Items purchased between November 15 and December 31"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "An item bought on December 10 can be returned until January 31 of the following year.",
+     "December 10 falls in the November 15 - December 31 window."
+    ],
+    [
+     "C",
+     "numerical",
+     "Items purchased between November 15 and December 31 may be returned until March 31 of the following year.",
+     "The extended deadline is January 31."
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-728.4-b",
+   "q": [
+    "Customer support managers may approve a goodwill refund"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Customer support managers may approve a goodwill refund of up to $100 outside the policy once per customer per year.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Customer support managers may approve goodwill refunds of up to $500 outside the policy.",
+     "The limit is $100."
+    ],
+    [
+     "C",
+     "condition",
+     "Customer support managers may approve goodwill refunds for the same customer several times a year.",
+     "Once per customer per year."
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-729.1-a",
+   "q": [
+    "International customers, meaning customers whose delivery address"
+   ],
+   "counterpart": "REF-728.1-a",
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "International customers can request a refund up to 45 days after delivery.",
+     "Paraphrases the window.",
+     {
+      "scoped": true
+     }
+    ],
+    [
+     "C",
+     "numerical",
+     "International customers may request a refund within 60 days of delivery.",
+     "The international window is 45 days.",
+     {
+      "scoped": true
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-729.1-b",
+   "q": [
+    "Final sale items, gift cards, downloadable software, and personalized products are non-refundable"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Personalized products bought by international customers are non-refundable.",
+     "Personalized products are listed as non-refundable."
+    ],
+    [
+     "C",
+     "negation",
+     "International customers can get a refund for gift cards.",
+     "Gift cards are non-refundable."
+    ]
+   ],
+   "sentence_context": "The non-refundable list does not name international customers."
+  },
+  {
+   "fact_id": "REF-729.1-c",
+   "q": [
+    "a return authorization number must be obtained"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "International customers must obtain a return authorization number before shipping an item back.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "International refund requests may be made by phone to customer support.",
+     "They must be submitted through the online returns center."
+    ],
+    [
+     "I",
+     "missing",
+     "Return authorization numbers for international returns expire after 14 days.",
+     "Expiry is not mentioned."
+    ]
+   ],
+   "sentence_context": "'Refund requests' does not say international."
+  },
+  {
+   "fact_id": "REF-729.2-a",
+   "q": [
+    "International customers pay the cost of return shipping"
+   ],
+   "counterpart": "REF-728.2-a",
+   "claims": [
+    [
+     "S",
+     "exception",
+     "International customers receive a prepaid international return label when the wrong item was sent.",
+     "The wrong-item exception provides a prepaid label.",
+     {
+      "scoped": true
+     }
+    ],
+    [
+     "S",
+     "direct",
+     "International customers pay the cost of return shipping unless the item is defective or the wrong item was sent.",
+     "Restates the rule.",
+     {
+      "scoped": true
+     }
+    ],
+    [
+     "C",
+     "exception",
+     "International customers pay return shipping even when the item is defective.",
+     "Defective items get a prepaid label."
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-729.2-b",
+   "q": [
+    "Customs duties, import taxes, and brokerage fees"
+   ],
+   "claims": [
+    [
+     "S",
+     "exception",
+     "Customs duties paid on the original delivery are refunded when the item is defective.",
+     "The defect exception applies to duties."
+    ],
+    [
+     "C",
+     "exception",
+     "Customs duties paid on the original delivery are never refunded.",
+     "They are refunded if defective or sent in error."
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-729.2-c",
+   "q": [
+    "Returns must be sent with tracked shipping"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "International returns must be sent with tracked shipping.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "International returns must be insured for their full value.",
+     "Insurance is not mentioned."
+    ]
+   ],
+   "sentence_context": "'Returns' does not say international returns."
+  },
+  {
+   "fact_id": "REF-729.3-a",
+   "q": [
+    "International refunds are issued to the original payment method"
+   ],
+   "counterpart": "REF-728.3-a",
+   "claims": [
+    [
+     "S",
+     "direct",
+     "International refunds are issued to the original payment method within 10 to 15 business days after the returned item is received and inspected.",
+     "Restates the rule.",
+     {
+      "scoped": true
+     }
+    ],
+    [
+     "C",
+     "numerical",
+     "International refunds are issued within 5 business days after the returned item is received and inspected.",
+     "The international range is 10 to 15 business days.",
+     {
+      "scoped": true
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-729.3-b",
+   "q": [
+    "Refunds are made in the currency of the original payment"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "The company does not compensate international customers for exchange rate differences on refunds.",
+     "No compensation for exchange rate differences."
+    ],
+    [
+     "C",
+     "negation",
+     "International customers are compensated for bank conversion fees on refunds.",
+     "The company does not compensate for them."
+    ]
+   ],
+   "sentence_context": "'Refunds' does not say international refunds."
+  },
+  {
+   "fact_id": "REF-729.3-c",
+   "q": [
+    "Store credit is not available for international orders"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "International orders cannot be refunded as store credit.",
+     "Store credit is not available internationally."
+    ],
+    [
+     "C",
+     "similar_policy",
+     "International customers who choose store credit receive a 10 percent bonus.",
+     "Store credit is not available for international orders."
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-729.4-a",
+   "q": [
+    "International orders above $1,000 must be inspected"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "For an international order of $2,500, the returns quality team must inspect the return before the refund is approved.",
+     "$2,500 is above $1,000."
+    ],
+    [
+     "C",
+     "numerical",
+     "Returns quality team inspection can add up to 15 business days to an international refund.",
+     "It may add up to 5 business days."
+    ],
+    [
+     "I",
+     "missing",
+     "International orders below $1,000 are refunded without any inspection.",
+     "Orders below $1,000 are not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "REF-729.4-b",
+   "q": [
+    "Refunds cannot be issued to a different country or currency"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "International refunds cannot be issued in a different currency than the original order.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "International refunds can be issued to a different country at the customer's request.",
+     "They cannot be issued to a different country."
+    ]
+   ],
+   "sentence_context": "'Refunds' does not say international refunds."
+  },
+  {
+   "fact_id": "SEC-301.1-a",
+   "q": [
+    "All user account passwords must be at least 14 characters long"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "All user account passwords must be at least 14 characters long.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "User account passwords must be at least 20 characters long.",
+     "The minimum is 14 characters."
+    ],
+    [
+     "I",
+     "missing",
+     "User account passwords must contain at least one special character.",
+     "Character classes are not specified."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-301.1-b",
+   "q": [
+    "The last 12 passwords cannot be reused"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The last 12 passwords cannot be reused.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Only the last 3 passwords are blocked from reuse.",
+     "The last 12 are blocked."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-301.1-c",
+   "q": [
+    "Passwords must not contain the user's name"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Passwords must not contain the company name.",
+     "Restates the rule."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "New passwords are checked automatically against the company's list of known breached passwords.",
+     "The breached-password check is automatic."
+    ],
+    [
+     "C",
+     "exception",
+     "Passwords may contain the user's username if they are at least 14 characters long.",
+     "Usernames are never allowed in passwords."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-301.2-a",
+   "q": [
+    "Passwords for standard user accounts do not expire"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Standard user account passwords do not expire on a fixed schedule.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Standard user account passwords expire every 180 days.",
+     "They do not expire on a fixed schedule."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-301.2-b",
+   "q": [
+    "Accounts are locked for 15 minutes"
+   ],
+   "claims": [
+    [
+     "S",
+     "paraphrase",
+     "Ten consecutive failed login attempts lock an account for 15 minutes.",
+     "Restates the lockout rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Accounts are locked after 5 consecutive failed login attempts.",
+     "Lockout happens after 10 attempts."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-301.2-c",
+   "q": [
+    "A password must be changed immediately"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "A password must be changed immediately when there is any suspicion that it has been phished.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "A phished password must be reported to the Security Operations Center within 1 hour.",
+     "Reporting is not covered in this evidence."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-301.3-a",
+   "q": [
+    "Passwords must never be written down"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Work passwords must never be shared with Service Desk staff.",
+     "Service Desk staff are explicitly included."
+    ],
+    [
+     "C",
+     "exception",
+     "Work passwords may be shared with a manager when the employee is on leave.",
+     "Sharing with managers is never allowed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-301.3-b",
+   "q": [
+    "Shared team credentials are permitted only"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Shared team credentials are permitted only for systems that cannot support individual accounts.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Shared team credentials may be stored in a team spreadsheet.",
+     "They must be stored in a shared password manager vault."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-301.4-a",
+   "q": [
+    "Service accounts used by applications"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Service account passwords must be rotated every 90 days and immediately when someone with access leaves the company.",
+     "Restates the rotation rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Service account passwords must be rotated every 365 days.",
+     "Rotation is every 90 days."
+    ],
+    [
+     "C",
+     "similar_policy",
+     "Service account passwords must be at least 14 characters long.",
+     "14 characters is the user-account minimum; service accounts need 24."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-301.4-b",
+   "q": [
+    "Administrator accounts must be separate"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Administrator accounts must be separate from the employee's everyday account.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Employees may use their everyday account for administrator tasks.",
+     "Administrator accounts must be separate."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-301.4-c",
+   "q": [
+    "Default passwords on new systems and devices"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Default passwords on new devices must be changed before the device is connected to the company network.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Default passwords must be changed within 24 hours of setup.",
+     "The rule is tied to connecting, not to a time after setup."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-302.1-a",
+   "q": [
+    "Multi-factor authentication (MFA) is required for email"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Multi-factor authentication is required for the finance system.",
+     "The finance system is listed."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "MFA is mandatory for any system holding Restricted data.",
+     "Restricted-data systems are listed."
+    ],
+    [
+     "I",
+     "missing",
+     "MFA is required for the employee intranet homepage.",
+     "The intranet is not listed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-302.1-b",
+   "q": [
+    "Systems that cannot support MFA require a documented exception"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Systems that cannot support MFA need a documented exception approved by the CISO and reviewed every 6 months.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "MFA exceptions are reviewed every 12 months.",
+     "They are reviewed every 6 months."
+    ],
+    [
+     "C",
+     "condition",
+     "MFA exceptions can be approved by the system owner.",
+     "The CISO approves them."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-302.2-a",
+   "q": [
+    "The approved MFA methods are FIDO2 hardware security keys"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The company authenticator app with number matching is an approved MFA method.",
+     "Restates the approved methods."
+    ],
+    [
+     "C",
+     "negation",
+     "SMS text message codes are an approved fallback MFA method.",
+     "SMS codes are not approved.",
+     {
+      "q": [
+       "SMS text message codes and voice calls are not approved methods"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-302.2-b",
+   "q": [
+    "FIDO2 security keys are mandatory for administrators"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "FIDO2 security keys are mandatory for administrators.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Administrators may use the authenticator app instead of a FIDO2 security key.",
+     "FIDO2 keys are mandatory for them."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-302.2-c",
+   "q": [
+    "the Service Desk may issue a temporary one-time code"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "A temporary one-time MFA code issued by the Service Desk is valid for 72 hours.",
+     "Restates the validity."
+    ],
+    [
+     "C",
+     "numerical",
+     "A temporary one-time MFA code from the Service Desk is valid for 7 days.",
+     "It is valid for 72 hours."
+    ],
+    [
+     "C",
+     "condition",
+     "The Service Desk issues a temporary MFA code after verifying the employee's identity by email.",
+     "Identity is verified by video call with the manager present."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-302.3-a",
+   "q": [
+    "A lost or stolen security key"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "A lost security key must be reported to the Service Desk within 1 hour of discovery.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "A lost phone with the authenticator app must be reported within 24 hours of discovery.",
+     "It must be reported within 1 hour."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-302.3-b",
+   "q": [
+    "Employees must deny any MFA prompt they did not initiate"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Employees must deny any MFA prompt they did not initiate and report it as a security incident.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Employees may approve an unexpected MFA prompt if they expect a colleague to log in.",
+     "Prompts they did not initiate must be denied."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-302.3-c",
+   "q": [
+    "Employees must never read an MFA code aloud"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Employees must never share an MFA code with someone claiming to be from the Service Desk.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "MFA codes expire after 30 seconds.",
+     "Code lifetime is not stated."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-303.1-a",
+   "q": [
+    "Restricted information would cause severe harm"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Encryption keys are classified as Restricted information.",
+     "Encryption keys are listed as Restricted."
+    ],
+    [
+     "C",
+     "similar_policy",
+     "Customer payment card data is classified as Confidential rather than Restricted.",
+     "Payment card data is Restricted."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-303.1-b",
+   "q": [
+    "Confidential information could harm the company"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Employee performance records are classified as Confidential information.",
+     "They are listed as Confidential."
+    ],
+    [
+     "C",
+     "similar_policy",
+     "Employee performance records are classified as Internal information.",
+     "They are Confidential."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-303.1-c",
+   "q": [
+    "All company information is assigned one of four classification levels"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "All company information is assigned one of four classification levels.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Company information is assigned one of three classification levels.",
+     "There are four levels."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-303.2-a",
+   "q": [
+    "Restricted information must be encrypted at rest and in transit"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Restricted information must never be stored on removable media.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "exception",
+     "Restricted information may be stored on a personal device if it is encrypted.",
+     "It must never be stored on personal devices."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-303.2-b",
+   "q": [
+    "Printing Restricted information is prohibited"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Printing Restricted information is prohibited.",
+     "Restates the rule."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "Printed Confidential information must be collected from the printer immediately.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "similar_policy",
+     "Printing Confidential information is prohibited.",
+     "Only Restricted printing is prohibited; printed Confidential information must be collected immediately."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-303.2-c",
+   "q": [
+    "Restricted information may be shared externally only"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Restricted information may be shared externally only with approval from the Chief Information Security Officer.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Restricted information may be shared externally with approval from the data owner.",
+     "CISO approval is required."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-303.2-d",
+   "q": [
+    "Internal information may be shared with employees"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Internal information may be shared with third parties covered by a signed non-disclosure agreement.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Internal information must be labeled with its classification.",
+     "Labeling of Internal information is not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-303.3-a",
+   "q": [
+    "Documents classified as Confidential or Restricted must be labeled"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Confidential documents must be labeled with their classification in the header or file name.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Public documents must be labeled with their classification.",
+     "Only Confidential and Restricted documents are covered."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-303.3-b",
+   "q": [
+    "a certificate of destruction must be kept for 3 years"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "A certificate of destruction for storage media that held Restricted data must be kept for 3 years.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "A certificate of destruction must be kept for 1 year.",
+     "It must be kept for 3 years."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-303.3-c",
+   "q": [
+    "Data owners review the classification of their datasets"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Data owners review the classification of their datasets every 12 months.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Data owners review the classification of their datasets every 6 months.",
+     "Reviews are every 12 months."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-304.1-a",
+   "q": [
+    "Employees must report any suspected security incident"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Employees must report data sent to the wrong recipient as a suspected security incident.",
+     "Listed explicitly."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "A phishing email that an employee clicked must be reported as a suspected security incident.",
+     "Clicked phishing emails are listed."
+    ],
+    [
+     "I",
+     "missing",
+     "Employees must report spam emails that they did not open.",
+     "Unopened spam is not listed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-304.1-b",
+   "q": [
+    "Reporting a mistake in good faith will not lead to disciplinary action"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Reporting a mistake in good faith will not lead to disciplinary action.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Employees who report their own mistakes in good faith may face disciplinary action.",
+     "Good-faith reports do not lead to discipline."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-304.2-a",
+   "q": [
+    "Suspected incidents must be reported to the Security Operations Center within 1 hour"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Suspected security incidents must be reported to the Security Operations Center within 1 hour of discovery.",
+     "Restates the rule."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "The 24-hour security hotline at extension 4400 can be used to report a suspected incident.",
+     "The hotline is a listed channel."
+    ],
+    [
+     "C",
+     "numerical",
+     "Suspected security incidents must be reported within 24 hours of discovery.",
+     "The limit is 1 hour."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-304.2-b",
+   "q": [
+    "Employees must not investigate the incident themselves"
+   ],
+   "claims": [
+    [
+     "S",
+     "exception",
+     "Employees must not power off an affected device unless the Security Operations Center instructs them to.",
+     "Restates the rule and exception."
+    ],
+    [
+     "C",
+     "exception",
+     "Employees should power off an affected device immediately.",
+     "They must not, unless instructed."
+    ],
+    [
+     "C",
+     "negation",
+     "Employees should forward suspicious emails to colleagues to warn them.",
+     "Forwarding suspicious emails is prohibited."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-304.2-c",
+   "q": [
+    "Disconnecting the affected device from the network is permitted"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Disconnecting an affected device from the network is permitted.",
+     "Restates the rule."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-304.3-a",
+   "q": [
+    "SEV-1 incidents involve active compromise"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "SEV-1 incidents require a response within 15 minutes and immediate notification of the CISO.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "SEV-1 incidents require a response within 1 hour.",
+     "SEV-1 requires 15 minutes."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-304.3-b",
+   "q": [
+    "SEV-2 incidents involve a confirmed compromise"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "SEV-2 incidents require a response within 1 hour.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "similar_policy",
+     "SEV-3 incidents require a response within 1 hour.",
+     "SEV-3 requires a response within 4 business hours.",
+     {
+      "q": [
+       "SEV-3 incidents are suspected compromises"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-304.3-c",
+   "q": [
+    "SEV-4 incidents are minor policy violations"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "SEV-4 incidents are minor policy violations handled within 2 business days.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "SEV-4 incidents are reported to the employee's manager.",
+     "Not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-304.3-d",
+   "q": [
+    "SEV-1 incidents involve active compromise",
+    "SEV-2 incidents involve a confirmed compromise"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_sentence",
+     "A SEV-1 incident requires a faster response than a SEV-2 incident.",
+     "15 minutes (SEV-1) is faster than 1 hour (SEV-2)."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-304.4-a",
+   "q": [
+    "When an incident may involve personal data"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "When an incident may involve personal data, the Security Operations Center notifies the Privacy Office within 4 hours.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "When an incident may involve personal data, the Privacy Office is notified within 24 hours.",
+     "It is notified within 4 hours."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-304.4-b",
+   "q": [
+    "The Privacy Office decides whether regulators"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Required regulator notifications are made within 72 hours of the company becoming aware of the breach.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "The Security Operations Center decides whether regulators must be notified of a personal data breach.",
+     "The Privacy Office decides."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-304.4-c",
+   "q": [
+    "Every SEV-1 and SEV-2 incident receives a written post-incident review"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Every SEV-2 incident receives a written post-incident review within 10 business days of closure.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "similar_policy",
+     "SEV-3 incidents receive a written post-incident review.",
+     "Only SEV-1 and SEV-2 are covered."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-305.1-a",
+   "q": [
+    "Screens must lock automatically after 5 minutes"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Company device screens must lock automatically after 5 minutes of inactivity.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Company device screens must lock automatically after 15 minutes of inactivity.",
+     "The timeout is 5 minutes."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-305.1-b",
+   "q": [
+    "Only software from the company software catalog"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Software that is not in the company software catalog requires additional approval before installation.",
+     "Only catalog software may be installed without approval."
+    ],
+    [
+     "C",
+     "condition",
+     "Employees may install any software on company devices without approval.",
+     "Non-catalog software needs approval."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-305.1-c",
+   "q": [
+    "Company laptops and phones must be enrolled"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Company laptops must be enrolled in the device management system before use.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Company phones must be replaced every three years.",
+     "Replacement is not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-305.2-a",
+   "q": [
+    "Operating system and application security updates must be installed within 14 days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Security updates must be installed within 14 days of release.",
+     "Restates the rule."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-305.2-b",
+   "q": [
+    "Updates rated critical by the Security team"
+   ],
+   "claims": [
+    [
+     "S",
+     "similar_policy",
+     "Updates rated critical by the Security team must be installed within 72 hours.",
+     "Restates the critical-update rule."
+    ],
+    [
+     "C",
+     "similar_policy",
+     "Critical security updates may be installed within 14 days of release.",
+     "Critical updates must be installed within 72 hours."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-305.2-c",
+   "q": [
+    "Devices that are more than 30 days behind"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Devices that are more than 30 days behind on security updates are blocked from company systems.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Devices are blocked only when they are more than 90 days behind on security updates.",
+     "The threshold is 30 days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-305.3-a",
+   "q": [
+    "Personal laptops and computers may not be used"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Personal laptops may not be used to access company systems.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "exception",
+     "Personal laptops may access company email through the managed work app.",
+     "Personal laptops may not access company systems at all."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-305.3-b",
+   "q": [
+    "Personal phones and tablets may access company email"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Personal phones may access company email only through the managed work app.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Personal tablets must be enrolled in the company device management system.",
+     "Enrollment of personal devices is not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-305.3-c",
+   "q": [
+    "Confidential and Restricted information must not be downloaded to personal devices"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Confidential information must not be downloaded to personal devices.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "exception",
+     "Confidential information may be downloaded to a personal phone through the managed work app.",
+     "It must not be downloaded to personal devices."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-305.4-a",
+   "q": [
+    "A lost or stolen company device"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "A lost company device must be reported as a security incident within 1 hour of discovery.",
+     "Restates the rule."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "A stolen personal phone that has the managed work app must be reported within 1 hour of discovery.",
+     "Personal devices with the app are covered."
+    ],
+    [
+     "C",
+     "numerical",
+     "A lost company device must be reported within 24 hours of discovery.",
+     "The limit is 1 hour."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-305.4-b",
+   "q": [
+    "Employees must not leave devices unattended"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Employees must not leave company devices unattended in vehicles.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Company laptops may be packed in checked luggage and left unattended.",
+     "Devices must not be left in checked luggage."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-305.4-c",
+   "q": [
+    "all company devices must be returned within 5 business days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "When employment ends, all company devices must be returned within 5 business days.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "When employment ends, company devices must be returned within 30 days.",
+     "The limit is 5 business days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-306.1-a",
+   "q": [
+    "may receive access to company systems only when sponsored"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Third parties may receive access to company systems only when sponsored by a named employee.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Contractors may receive access to company systems without an employee sponsor.",
+     "A named employee sponsor is required."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-306.1-b",
+   "q": [
+    "the third party must sign a non-disclosure agreement"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Before access is granted, the third party must sign a non-disclosure agreement.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "A third party may sign the non-disclosure agreement after access has been granted.",
+     "It must be signed before access is granted."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-306.1-c",
+   "q": [
+    "Vendors that will process Restricted data must also provide"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Vendors that will process Restricted data need an independent security certification report and CISO approval.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "similar_policy",
+     "Vendors that will process Internal data need CISO approval.",
+     "Only Restricted data is covered."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-306.2-a",
+   "q": [
+    "granted for a maximum of 90 days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Third-party access is granted for a maximum of 90 days before the sponsor must request renewal.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Third-party access is granted for up to 12 months before renewal is needed.",
+     "The maximum is 90 days."
+    ]
+   ],
+   "sentence_context": "'Access' does not say third-party access."
+  },
+  {
+   "fact_id": "SEC-306.2-b",
+   "q": [
+    "Third-party accounts are individual and named"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Shared third-party accounts are prohibited.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "A vendor team may share a single third-party account.",
+     "Shared accounts are prohibited."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-306.2-c",
+   "q": [
+    "Remote access to production systems is permitted only through the company bastion host"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Third-party remote access to production systems is permitted only through the company bastion host.",
+     "Restates the rule."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "Third-party remote sessions on production systems are recorded.",
+     "All such sessions are recorded."
+    ],
+    [
+     "C",
+     "condition",
+     "Third parties may access production systems remotely through the company VPN without using the bastion host.",
+     "Access must go through the bastion host."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SEC-306.3-a",
+   "q": [
+    "Access must be removed within 24 hours"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Third-party access must be removed within 24 hours of a contract ending.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Third-party access must be removed within 7 days of a contract ending.",
+     "The limit is 24 hours."
+    ]
+   ],
+   "sentence_context": "'Access' does not say third-party access."
+  },
+  {
+   "fact_id": "SEC-306.3-b",
+   "q": [
+    "Accounts with no login activity for 30 days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Third-party accounts with no login activity for 30 days are disabled automatically.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Third-party accounts are disabled automatically after 90 days without login activity.",
+     "The threshold is 30 days."
+    ]
+   ],
+   "sentence_context": "'Accounts' does not say third-party accounts."
+  },
+  {
+   "fact_id": "SEC-306.3-c",
+   "q": [
+    "Sponsors review the access of their third parties every quarter"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Sponsors review the access of their third parties every quarter.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Third-party access reviews must be approved by the CISO.",
+     "Approval of reviews is not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SHP-732.1-a",
+   "q": [
+    "Orders placed before 2 PM local warehouse time"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "An order placed at 1 PM local warehouse time on a business day is dispatched the same day.",
+     "1 PM is before 2 PM on a business day."
+    ],
+    [
+     "C",
+     "numerical",
+     "Orders placed at 4 PM on a business day are dispatched the same day.",
+     "Orders after 2 PM are dispatched the next business day.",
+     {
+      "q": [
+       "Orders placed after 2 PM, or on weekends"
+      ]
+     }
+    ],
+    [
+     "S",
+     "multi_condition",
+     "An order placed on a Saturday is dispatched on the next business day.",
+     "Weekend orders ship the next business day.",
+     {
+      "q": [
+       "Orders placed after 2 PM, or on weekends"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "SHP-732.1-b",
+   "q": [
+    "Customers receive a tracking number by email"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Customers receive a tracking number by email when the order is dispatched.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Customers receive a text message when the order is delivered.",
+     "Delivery notifications are not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SHP-732.2-a",
+   "q": [
+    "Domestic standard delivery takes 3 to 5 business days"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Domestic standard delivery is free for orders over $75.",
+     "Restates the rule."
+    ],
+    [
+     "S",
+     "paraphrase",
+     "A domestic order of $50 pays a $6.95 standard delivery fee.",
+     "Orders of $75 or less pay $6.95."
+    ],
+    [
+     "C",
+     "numerical",
+     "Domestic standard delivery is free for all orders over $50.",
+     "Free delivery starts above $75."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SHP-732.2-b",
+   "q": [
+    "Domestic express delivery takes 1 to 2 business days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Domestic express delivery costs $19.95.",
+     "Restates the price."
+    ],
+    [
+     "C",
+     "numerical",
+     "Domestic express delivery takes 3 to 5 business days.",
+     "Express takes 1 to 2 business days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SHP-732.2-c",
+   "q": [
+    "International customers are responsible for customs duties"
+   ],
+   "claims": [
+    [
+     "S",
+     "exception",
+     "International customers are not responsible for customs duties when the order was placed with the duties-included option.",
+     "Restates the exception."
+    ],
+    [
+     "C",
+     "exception",
+     "International customers always pay customs duties and import taxes.",
+     "Not when the duties-included option was used."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SHP-732.2-d",
+   "q": [
+    "International delivery takes 7 to 21 business days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "International delivery takes 7 to 21 business days.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "International deliveries require a signature on arrival.",
+     "Not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SHP-732.3-a",
+   "q": [
+    "A domestic package may be reported lost"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "A domestic package may be reported lost if it has not arrived 10 business days after the estimated delivery date.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "similar_policy",
+     "An international package may be reported lost 10 business days after the estimated delivery date.",
+     "International packages wait 30 days.",
+     {
+      "q": [
+       "An international package may be reported lost 30 days"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "fact_id": "SHP-732.3-b",
+   "q": [
+    "Packages that arrive damaged must be reported within 48 hours"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Damaged packages must be reported within 48 hours of delivery with photos of the package and the product.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Damaged packages must be reported within 14 days of delivery.",
+     "The limit is 48 hours."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SHP-732.3-c",
+   "q": [
+    "Confirmed lost or damaged orders are replaced at no cost or refunded"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Confirmed lost orders are replaced at no cost or refunded, at the customer's choice.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "The company decides whether a confirmed lost order is replaced or refunded.",
+     "The customer chooses."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SHP-732.4-a",
+   "q": [
+    "Delivery addresses can be changed only before the order is dispatched"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Delivery addresses can be changed only before the order is dispatched.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Delivery addresses can be changed after dispatch by contacting the carrier.",
+     "Only before dispatch."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SHP-732.4-b",
+   "q": [
+    "When a delivery fails 3 times"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "After 3 failed delivery attempts, the order is refunded minus the original shipping cost.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "After 3 failed delivery attempts, the order is refunded in full, including shipping.",
+     "The original shipping cost is deducted."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SHP-732.4-c",
+   "q": [
+    "The company cannot ship orders containing lithium batteries"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Orders containing lithium batteries cannot be shipped to post office boxes.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Orders containing lithium batteries require an adult signature on delivery.",
+     "Not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SUB-730.1-a",
+   "q": [
+    "Cancellation takes effect at the end of the current billing period"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "When a monthly subscription is cancelled, the customer keeps access until the end of the current billing period.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "Cancelling a monthly subscription ends access immediately.",
+     "Access continues to the end of the billing period."
+    ]
+   ],
+   "sentence_context": "'Cancellation' does not say it is of a monthly subscription."
+  },
+  {
+   "fact_id": "SUB-730.1-b",
+   "q": [
+    "Partial-month refunds are not provided for monthly plans"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Partial-month refunds are not provided for monthly plans.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Monthly plan customers receive a partial refund for unused days after cancelling.",
+     "No partial-month refunds."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SUB-730.1-c",
+   "q": [
+    "Monthly plans renew automatically"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Monthly plans renew automatically on the same calendar day each month until cancelled.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Monthly plans can be paused for up to 3 months.",
+     "Pausing is not addressed."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SUB-730.2-a",
+   "q": [
+    "Customers on annual plans may cancel within 14 days"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Annual plan customers who cancel within 14 days of an annual renewal receive a full refund.",
+     "The 14-day window applies to renewals too."
+    ],
+    [
+     "C",
+     "numerical",
+     "Annual plan customers may cancel for a full refund within 60 days of the initial purchase.",
+     "The window is 14 days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SUB-730.2-b",
+   "q": [
+    "After that 14-day cooling-off period"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "After the 14-day cooling-off period, a cancelled annual plan keeps access until the end of the paid term and does not renew.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "exception",
+     "Annual plans cancelled after the 14-day cooling-off period receive a prorated refund.",
+     "They are non-refundable."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SUB-730.2-c",
+   "q": [
+    "The company sends a renewal reminder email"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The company sends a renewal reminder email at least 30 days before every annual renewal date.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "The company sends the annual renewal reminder email only 7 days before the renewal date.",
+     "It is sent at least 30 days before."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SUB-730.3-a",
+   "q": [
+    "customer data is retained for 60 days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "After a subscription ends, customer data is retained for 60 days.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "After a subscription ends, customer data is retained for 30 days.",
+     "It is retained for 60 days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SUB-730.3-b",
+   "q": [
+    "After 60 days, the data is permanently deleted"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Customer data deleted after the 60-day retention period cannot be restored.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Customer data deleted after 60 days can be restored by customer support.",
+     "It cannot be restored."
+    ]
+   ],
+   "sentence_context": "'the data' does not say it is customer data after a subscription ends."
+  },
+  {
+   "fact_id": "SUB-730.3-c",
+   "q": [
+    "Customers may request immediate deletion"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Customers may request immediate deletion of their data at any time through customer support.",
+     "Restates the rule."
+    ],
+    [
+     "I",
+     "missing",
+     "Immediate deletion requests are completed within 5 business days.",
+     "Completion time is not stated."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SUB-730.4-a",
+   "q": [
+    "Customers may downgrade to a lower plan at any time"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "A downgrade to a lower plan takes effect at the next renewal date.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "A downgrade to a lower plan takes effect immediately.",
+     "It takes effect at the next renewal."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SUB-730.4-b",
+   "q": [
+    "Duplicate charges, or charges made after a confirmed cancellation"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Duplicate charges are refunded in full within 5 business days of being reported.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Duplicate charges are refunded within 30 business days of being reported.",
+     "The limit is 5 business days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "SUB-730.4-c",
+   "q": [
+    "Refund requests for physical products are handled under REF-728 or REF-729"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Refund requests for physical products are not handled under the subscription cancellation rules.",
+     "They are handled under the refund policies instead."
+    ]
+   ],
+   "sentence_context": "'this policy' is not named in the sentence."
+  },
+  {
+   "fact_id": "WAR-731.1-a",
+   "q": [
+    "Company-branded hardware products include a 2-year limited warranty"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "Company-branded hardware products include a 2-year limited warranty from the date of delivery.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Company-branded hardware products include a 3-year limited warranty.",
+     "The warranty is 2 years."
+    ]
+   ]
+  },
+  {
+   "fact_id": "WAR-731.1-b",
+   "q": [
+    "Accessories such as cables, cases, and chargers include a 1-year limited warranty"
+   ],
+   "claims": [
+    [
+     "S",
+     "similar_policy",
+     "Charging cables include a 1-year limited warranty.",
+     "Cables are listed accessories with a 1-year warranty."
+    ],
+    [
+     "C",
+     "similar_policy",
+     "Accessories such as cases include a 2-year warranty.",
+     "Accessories have a 1-year warranty."
+    ]
+   ]
+  },
+  {
+   "fact_id": "WAR-731.1-c",
+   "q": [
+    "The warranty applies to both domestic and international customers"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The warranty applies to international customers.",
+     "Both groups are covered."
+    ],
+    [
+     "C",
+     "negation",
+     "The warranty transfers to the new owner when a product is resold.",
+     "It is not transferable."
+    ]
+   ]
+  },
+  {
+   "fact_id": "WAR-731.2-a",
+   "q": [
+    "The warranty does not cover accidental damage"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "The warranty does not cover liquid damage.",
+     "Liquid damage is excluded."
+    ],
+    [
+     "S",
+     "multi_condition",
+     "A battery that retains 85 percent of its original capacity is not covered by the warranty.",
+     "Batteries at 80 percent or more are excluded."
+    ],
+    [
+     "C",
+     "exception",
+     "Accidental damage is covered by the warranty.",
+     "Accidental damage is excluded."
+    ],
+    [
+     "I",
+     "missing",
+     "Batteries that retain less than 80 percent of their capacity are replaced free of charge.",
+     "The remedy for such batteries is not stated."
+    ]
+   ]
+  },
+  {
+   "fact_id": "WAR-731.2-b",
+   "q": [
+    "Products with a removed or altered serial number"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Products with a removed serial number are not eligible for warranty service.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "exception",
+     "Products with an altered serial number can receive warranty service with proof of purchase.",
+     "They are not eligible."
+    ]
+   ]
+  },
+  {
+   "fact_id": "WAR-731.3-a",
+   "q": [
+    "Customers must file a warranty claim within 30 days"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "Warranty claims must be filed within 30 days of discovering a defect and within the warranty period.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "Warranty claims may be filed up to 90 days after discovering a defect.",
+     "The limit is 30 days."
+    ]
+   ]
+  },
+  {
+   "fact_id": "WAR-731.3-b",
+   "q": [
+    "The company pays shipping costs for approved warranty claims"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The company pays shipping costs in both directions for approved warranty claims.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Customers pay return shipping for approved warranty claims.",
+     "The company pays both ways."
+    ]
+   ]
+  },
+  {
+   "fact_id": "WAR-731.3-c",
+   "q": [
+    "The warranty team responds to new claims within 3 business days"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "The warranty team responds to new claims within 3 business days.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "numerical",
+     "The warranty team responds to new claims within 10 business days.",
+     "Responses come within 3 business days."
+    ],
+    [
+     "I",
+     "missing",
+     "The warranty team resolves approved claims within 10 business days.",
+     "Only the first response time is stated."
+    ]
+   ]
+  },
+  {
+   "fact_id": "WAR-731.4-a",
+   "q": [
+    "Repaired or replaced products are covered"
+   ],
+   "claims": [
+    [
+     "S",
+     "multi_condition",
+     "A replaced product is covered for the remainder of the original warranty period or 90 days, whichever is longer.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "multi_condition",
+     "A replaced product is covered for 90 days only, even if more of the original warranty remains.",
+     "Whichever is longer applies."
+    ]
+   ]
+  },
+  {
+   "fact_id": "WAR-731.4-b",
+   "q": [
+    "Refunds issued under a warranty claim are not subject to restocking fees"
+   ],
+   "claims": [
+    [
+     "S",
+     "negation",
+     "Refunds issued under a warranty claim are not subject to restocking fees.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "negation",
+     "Refunds issued under a warranty claim are subject to a 15 percent restocking fee.",
+     "No restocking fees apply."
+    ]
+   ]
+  },
+  {
+   "fact_id": "WAR-731.4-c",
+   "q": [
+    "the company decides whether to repair the product"
+   ],
+   "claims": [
+    [
+     "S",
+     "direct",
+     "For approved warranty claims, the company decides whether to repair, replace, or refund the product.",
+     "Restates the rule."
+    ],
+    [
+     "C",
+     "condition",
+     "For approved warranty claims, the customer chooses between repair and replacement.",
+     "The company decides."
+    ]
+   ],
+   "sentence_context": "'approved claims' does not say warranty claims."
+  }
+ ]
+}

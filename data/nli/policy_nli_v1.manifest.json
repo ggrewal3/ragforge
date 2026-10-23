@@ -1,0 +1,260 @@
+{
+  "dataset": "RAGForge policy NLI",
+  "generator_version": "m6.2.0",
+  "seed": 6202,
+  "facts_version": "m6.2-facts-v1",
+  "facts_sha256": "b4b000391d92d03e4371b5df30471451d7dd3a0ba065b49f877b77992b9a7e31",
+  "split_unit": "policy family (assigned before generation, by authored-claim counts)",
+  "family_splits": {
+    "F01-refunds": "train",
+    "F02-warranty": "train",
+    "F03-shipping": "test",
+    "F04-subscriptions": "test",
+    "F05-support": "train",
+    "F06-expenses": "train",
+    "F07-purchasing": "train",
+    "F08-payables": "train",
+    "F09-leave": "train",
+    "F10-workplace": "validation",
+    "F11-development": "validation",
+    "F12-authentication": "test",
+    "F13-classification": "validation",
+    "F14-incidents": "train",
+    "F15-third-party": "train"
+  },
+  "family_documents": {
+    "F01-refunds": [
+      "REF-728",
+      "REF-729"
+    ],
+    "F02-warranty": [
+      "WAR-731"
+    ],
+    "F03-shipping": [
+      "SHP-732"
+    ],
+    "F04-subscriptions": [
+      "SUB-730"
+    ],
+    "F05-support": [
+      "ESC-733"
+    ],
+    "F06-expenses": [
+      "FIN-201",
+      "HR-106"
+    ],
+    "F07-purchasing": [
+      "FIN-202",
+      "FIN-204",
+      "FIN-205"
+    ],
+    "F08-payables": [
+      "FIN-203",
+      "FIN-206"
+    ],
+    "F09-leave": [
+      "HR-101",
+      "HR-104"
+    ],
+    "F10-workplace": [
+      "HR-102",
+      "HR-103"
+    ],
+    "F11-development": [
+      "HR-105"
+    ],
+    "F12-authentication": [
+      "SEC-301",
+      "SEC-302"
+    ],
+    "F13-classification": [
+      "SEC-303"
+    ],
+    "F14-incidents": [
+      "SEC-304",
+      "SEC-305"
+    ],
+    "F15-third-party": [
+      "SEC-306"
+    ]
+  },
+  "examples": 1271,
+  "label_source": "rule-generated from hand-authored fact specification (not human-reviewed)",
+  "excluded_benchmark_near_duplicates": [
+    {
+      "claim_id": "ESC-733.3-a/db6e42",
+      "claim": "A Tier 1 agent must escalate a case to Tier 2 when it remains unresolved after 2 customer contacts or 48 hours, whichever comes first.",
+      "benchmark_matches": [
+        [
+          "V025",
+          1.0
+        ]
+      ]
+    },
+    {
+      "claim_id": "FIN-201.2-a/91d483",
+      "claim": "Business class is permitted for flights of 6 hours or longer with Vice President approval.",
+      "benchmark_matches": [
+        [
+          "V014",
+          1.0
+        ]
+      ]
+    },
+    {
+      "claim_id": "FIN-201.2-a/57b6a7",
+      "claim": "Business class is permitted for flights of 4 hours or longer with Vice President approval.",
+      "benchmark_matches": [
+        [
+          "V014",
+          0.818
+        ]
+      ]
+    },
+    {
+      "claim_id": "FIN-201.2-b/78a5b1",
+      "claim": "Hotel stays are capped at $350 per night in designated high-cost cities.",
+      "benchmark_matches": [
+        [
+          "V030",
+          1.0
+        ]
+      ]
+    },
+    {
+      "claim_id": "HR-104.2-a/cb4c37",
+      "claim": "Birth parents receive 12 weeks of parental leave at full base pay.",
+      "benchmark_matches": [
+        [
+          "V009",
+          0.909
+        ]
+      ]
+    },
+    {
+      "claim_id": "HR-105.3-c/e7a573",
+      "claim": "Employees who resign within 12 months of receiving tuition assistance must repay 50 percent of the amount.",
+      "benchmark_matches": [
+        [
+          "V035",
+          0.846
+        ]
+      ]
+    },
+    {
+      "claim_id": "REF-728.3-c/93ea34",
+      "claim": "Domestic customers who choose store credit instead of a refund receive a 10 percent bonus.",
+      "benchmark_matches": [
+        [
+          "V007",
+          0.833
+        ]
+      ]
+    },
+    {
+      "claim_id": "REF-728.4-a/a9e4e5",
+      "claim": "Items purchased between November 15 and December 31 may be returned until March 31 of the following year.",
+      "benchmark_matches": [
+        [
+          "V021",
+          0.846
+        ]
+      ]
+    },
+    {
+      "claim_id": "REF-729.3-c/3076d0",
+      "claim": "International customers who choose store credit receive a 10 percent bonus.",
+      "benchmark_matches": [
+        [
+          "V007",
+          0.818
+        ]
+      ]
+    }
+  ],
+  "multi_sentence_claims_without_sentence_example": [
+    "ESC-733.2-c/4fbac7",
+    "ESC-733.4-b/0f4e22",
+    "ESC-733.4-b/55d7fb",
+    "HR-101.1-c/203e90",
+    "HR-101.2-b/d8b182"
+  ],
+  "claims_without_sentence_example_needing_context": [
+    "FIN-201.4-b/71700d",
+    "FIN-201.4-b/e6b01b",
+    "FIN-201.4-b/bcde53",
+    "FIN-204.1-b/b62c81",
+    "FIN-204.1-b/04b48d",
+    "FIN-204.1-b/031ea5",
+    "FIN-204.1-c/af0877",
+    "FIN-204.1-c/4cd8bb",
+    "FIN-206.2-a/e4c413",
+    "FIN-206.2-a/828f15",
+    "FIN-206.2-c/2dc136",
+    "FIN-206.2-c/09082b",
+    "HR-101.2-a/13b67b",
+    "HR-101.2-a/7f7b41",
+    "HR-101.2-a/47bd9b",
+    "HR-101.2-b/44bf98",
+    "HR-101.3-b/2828e9",
+    "HR-101.3-b/2595b4",
+    "HR-102.2-c/06eac8",
+    "HR-102.2-c/d80a38",
+    "HR-102.3-b/01ba9b",
+    "HR-102.3-b/acc812",
+    "HR-104.1-b/c66d79",
+    "HR-104.1-b/9557c6",
+    "HR-104.2-d/e56228",
+    "HR-104.2-d/9f91b0",
+    "HR-104.3-b/120ccb",
+    "HR-104.3-b/7eb02b",
+    "HR-104.3-b/b6a78c",
+    "HR-104.3-c/40c691",
+    "HR-104.3-c/74994e",
+    "HR-104.4-b/2a9e85",
+    "HR-104.4-b/00bb2b",
+    "HR-105.1-c/59c585",
+    "HR-105.1-c/f0baea",
+    "HR-105.3-b/164738",
+    "HR-105.3-b/621067",
+    "HR-106.1-a/3ca20d",
+    "HR-106.1-a/1c0b53",
+    "HR-106.1-b/043655",
+    "HR-106.1-c/3fb29d",
+    "REF-728.1-b/f44e33",
+    "REF-728.1-b/1accb9",
+    "REF-728.3-b/32c257",
+    "REF-728.3-b/4309e3",
+    "REF-728.3-b/07828b",
+    "REF-728.3-c/5147a9",
+    "REF-729.1-b/cefe15",
+    "REF-729.1-b/5db900",
+    "REF-729.1-c/4ee9bf",
+    "REF-729.1-c/c327dc",
+    "REF-729.1-c/746596",
+    "REF-729.2-c/b9ff0a",
+    "REF-729.2-c/240365",
+    "REF-729.3-b/84028d",
+    "REF-729.3-b/52afa1",
+    "REF-729.4-b/d08741",
+    "REF-729.4-b/0e77b1",
+    "SEC-306.2-a/859e7d",
+    "SEC-306.2-a/559237",
+    "SEC-306.3-a/6eb288",
+    "SEC-306.3-a/c6a423",
+    "SEC-306.3-b/902e7f",
+    "SEC-306.3-b/054c9c",
+    "SUB-730.1-a/4c739f",
+    "SUB-730.1-a/1900b8",
+    "SUB-730.3-b/626c76",
+    "SUB-730.3-b/28535f",
+    "SUB-730.4-c/474ca4",
+    "WAR-731.4-c/420aed",
+    "WAR-731.4-c/29983a"
+  ],
+  "reviews": {
+    "applied": 0,
+    "stale": [],
+    "unknown_example_ids": []
+  }
+}

@@ -1,0 +1,228 @@
+{
+  "dataset": "RAGForge policy NLI",
+  "dataset_type": "experimental_ai_labeled_sample_audited",
+  "version": "v0.1-exp",
+  "frozen_at": "2026-10-23T04:23:07+00:00",
+  "review_tool_version": "m6.2-review.1",
+  "generator_version": "m6.2.0",
+  "intended_use": "Exploratory M6.3 fine-tuning: train on train.jsonl, select on validation.jsonl. test.jsonl is reserved for one final evaluation and must not be used for model or threshold selection.",
+  "audit_sample": {
+    "size": 50,
+    "seed": 6203,
+    "method": "proportional stratified random sample over split x AI label x evidence format",
+    "allocation": {
+      "test|CONTRADICTED|full_section": 1,
+      "test|CONTRADICTED|sentence": 1,
+      "test|INSUFFICIENT_EVIDENCE|sentence": 1,
+      "test|SUPPORTED|full_section": 2,
+      "test|SUPPORTED|sentence": 2,
+      "train|CONTRADICTED|full_section": 7,
+      "train|CONTRADICTED|sentence": 6,
+      "train|INSUFFICIENT_EVIDENCE|full_section": 3,
+      "train|INSUFFICIENT_EVIDENCE|sentence": 5,
+      "train|SUPPORTED|full_section": 8,
+      "train|SUPPORTED|sentence": 7,
+      "validation|CONTRADICTED|full_section": 1,
+      "validation|CONTRADICTED|sentence": 1,
+      "validation|INSUFFICIENT_EVIDENCE|sentence": 1,
+      "validation|SUPPORTED|full_section": 2,
+      "validation|SUPPORTED|sentence": 2
+    },
+    "example_ids_sha256": "1fa90a918bbc172b99724b0b5edccfd29b723de33cb7622b852c098f23c0921c",
+    "reviewed": 50,
+    "accepted": 50,
+    "corrected": 0,
+    "rejected": 0,
+    "label_agreement": 1.0,
+    "ci95": [
+      0.929,
+      1.0
+    ],
+    "warnings": []
+  },
+  "labels": {
+    "human_reviewed": 94,
+    "human_corrected": 0,
+    "rejected_excluded": 1,
+    "remaining_draft": 1176,
+    "remaining_draft_by_split": {
+      "train": 811,
+      "validation": 183,
+      "test": 182
+    },
+    "review_status_by_split": {
+      "train": {
+        "draft": 811,
+        "reviewed": 73,
+        "rejected": 1
+      },
+      "validation": {
+        "draft": 183,
+        "reviewed": 7
+      },
+      "test": {
+        "draft": 182,
+        "reviewed": 14
+      }
+    },
+    "note": "review.ai_label keeps the AI-authored label and review.human_label the human decision; unreviewed examples keep status 'draft' and human_label null."
+  },
+  "source_hashes": {
+    "facts_sha256": "b4b000391d92d03e4371b5df30471451d7dd3a0ba065b49f877b77992b9a7e31",
+    "draft_dataset_sha256": "fd0e4adffa045b2cb331208f38997a184cf71edcd5df4b981e4c36dc07081f3c",
+    "documents_dir": "data/documents",
+    "documents_sha256": {
+      "ESC-733": "59ba6967b9509b8a65c8a7b3c53a1f532364b26c8c9beb76b641ea3a0c81fe63",
+      "FIN-201": "db9867df32b9b7693d0cd5fa24ddae5e9760a061dd6b2d7f4af46ec4f9fa0a05",
+      "FIN-202": "57e0d3122dd4e715956be7ee475d5568cf87b262250f6e0d23711aec1aaaaec1",
+      "FIN-203": "76950335031f9b7b1718241c9c24fb0bc2ef304e9d8bc83c82483b3ec86d661a",
+      "FIN-204": "d451732ded7370948985cb91f50b7fb640094d233dfa6fc55243848486d83269",
+      "FIN-205": "8e4ad2eca56675397d3d62effe20f85a407577069e94aa2dc8affc62f0475b99",
+      "FIN-206": "490e758b955d73b8b2f367042294bfadb5003876c7ea7b193144e111f53376f7",
+      "HR-101": "49c8aed26e01135f97fe21b2d37ef230ab8619af0bf589a1d1c2643c61209a34",
+      "HR-102": "cff6de17ae4754f6ef9e19a2c33c78755ff1ad22c62ac9052bb5576a9abe5e2c",
+      "HR-103": "fc259677cc15050371ea36152db9c14d7ec9349ebd0e79be74b90be5fc20b3ed",
+      "HR-104": "1b6ae6fb22d2452452912d1dc6e3f6d770a0eede5cb8cca75a998232e2e496bb",
+      "HR-105": "33ec9473782d016c5c68b39127807a0163496c9416054b48e5462b380d1983d8",
+      "HR-106": "6a05fe86f64777f24555333bded76084cd6da394df985571a51ff6c65ef6c2db",
+      "REF-728": "b5a89a3838f4f4dd9ee9cc09ac4060ceb54b3fb9b369bfe419e5c41f42bc3e98",
+      "REF-729": "872c170627ca492e7b70dce12446790cb62cb55f3495a87caae36135a27825c0",
+      "SEC-301": "ced075cfd3b82c318ac3eed355fbe850572899884343f293723b7d22b55572f8",
+      "SEC-302": "929b97cdb1433c95aa820f115e35c2592311328028c625a3efd3eac94d07a849",
+      "SEC-303": "b7f83a4d92be6a0896f136c833b55c310ca6a2c95bd8cd60a61a9f10bbbd6fa2",
+      "SEC-304": "f9800d27acc05d404ba6804897c427c5d417d2542eab189aefd4f5b08365bf36",
+      "SEC-305": "a7f3ba075810f0db355a4662656e91e11c5e6d3c8078fedfe4547f8b6662f27c",
+      "SEC-306": "bb9815b9b895db85ea0cff2a3cbc877067b9c47619a5566cb7e43d3545dabb09",
+      "SHP-732": "36498841ff2e766df50ded67f53fc4bf94d6efec402553d17e37cc4cd2ecea32",
+      "SUB-730": "3a8bf87ee4873e5546fd14b4223a63b03597bae1a8ebd76234c6f5b06e9fe2da",
+      "WAR-731": "f381f6e854e3a7fbcd4f9dbe12e95c215dce18398f5beeae56e7897173c07d82"
+    },
+    "documents_combined_sha256": "c4a268dae3c0e0362d742667b7f72aa6bdffca1cd8a164b9848e62c1a4172afc"
+  },
+  "review_hashes": {
+    "review_log_sha256": "b2af45cb07162a1d171d904a839b804488dfecb354d52059260d554d5ec7ff14",
+    "review_log_head": "3c68318f056f56fb4f2fc05733605c1e8f54a56c9ac1f4895373f63ad72a6a1a",
+    "decisions_logged": 95,
+    "effective_decisions": 95,
+    "effective_decisions_sha256": "1bb425a7483c2b7f1436fcd338c3d4459985b0f4c8c08c9ee7162d9bb6eb37a4"
+  },
+  "counts": {
+    "retained": 1270,
+    "by_split": {
+      "train": 884,
+      "validation": 190,
+      "test": 196
+    },
+    "by_split_label": {
+      "train": {
+        "INSUFFICIENT_EVIDENCE": 194,
+        "SUPPORTED": 377,
+        "CONTRADICTED": 313
+      },
+      "validation": {
+        "CONTRADICTED": 66,
+        "SUPPORTED": 89,
+        "INSUFFICIENT_EVIDENCE": 35
+      },
+      "test": {
+        "INSUFFICIENT_EVIDENCE": 35,
+        "SUPPORTED": 91,
+        "CONTRADICTED": 70
+      }
+    },
+    "by_split_format_label": {
+      "test": {
+        "full_section": {
+          "CONTRADICTED": 36,
+          "INSUFFICIENT_EVIDENCE": 10,
+          "SUPPORTED": 47
+        },
+        "sentence": {
+          "CONTRADICTED": 34,
+          "INSUFFICIENT_EVIDENCE": 25,
+          "SUPPORTED": 44
+        }
+      },
+      "train": {
+        "full_section": {
+          "CONTRADICTED": 170,
+          "INSUFFICIENT_EVIDENCE": 65,
+          "SUPPORTED": 205
+        },
+        "sentence": {
+          "CONTRADICTED": 143,
+          "INSUFFICIENT_EVIDENCE": 129,
+          "SUPPORTED": 172
+        }
+      },
+      "validation": {
+        "full_section": {
+          "CONTRADICTED": 34,
+          "INSUFFICIENT_EVIDENCE": 11,
+          "SUPPORTED": 47
+        },
+        "sentence": {
+          "CONTRADICTED": 32,
+          "INSUFFICIENT_EVIDENCE": 24,
+          "SUPPORTED": 42
+        }
+      }
+    },
+    "by_label": {
+      "INSUFFICIENT_EVIDENCE": 264,
+      "SUPPORTED": 557,
+      "CONTRADICTED": 449
+    },
+    "by_format": {
+      "full_section": 625,
+      "sentence": 645
+    }
+  },
+  "applied_reviews": 95,
+  "family_splits": {
+    "F01-refunds": "train",
+    "F02-warranty": "train",
+    "F03-shipping": "test",
+    "F04-subscriptions": "test",
+    "F05-support": "train",
+    "F06-expenses": "train",
+    "F07-purchasing": "train",
+    "F08-payables": "train",
+    "F09-leave": "train",
+    "F10-workplace": "validation",
+    "F11-development": "validation",
+    "F12-authentication": "test",
+    "F13-classification": "validation",
+    "F14-incidents": "train",
+    "F15-third-party": "train"
+  },
+  "leakage_checks": {
+    "exact_duplicate_pairs": 0,
+    "conflicting_label_pairs": 0,
+    "facts_crossing_splits": 0,
+    "claims_crossing_splits": 0,
+    "families_crossing_splits": 0,
+    "sections_crossing_splits": 0,
+    "evidence_texts_crossing_splits": 0,
+    "evidence_sentences_crossing_splits": 0
+  },
+  "known_limitations": [
+    "Labels are AI-authored drafts except where a human decision is recorded; most examples were never reviewed.",
+    "Label quality is estimated from a 50-example random sample; the confidence interval is wide and errors outside the sample remain.",
+    "Surface cues alone predict draft labels with 0.758 (validation) and 0.730 (test) accuracy; models must be compared against that cue-only baseline and by phenomenon.",
+    "Validation and test each contain only 3 of 15 policy families.",
+    "The M5 benchmark shares documents and many facts with this dataset and is not an independent test.",
+    "For exploratory M6.3 fine-tuning only; not a verified benchmark. Use the strict freeze for verified evaluation.",
+    "The validation split contains only 3 policy families (F10-workplace, F11-development, F13-classification). Its scores will reflect few policy types and have high variance; it is not a broad held-out benchmark.",
+    "The test split contains only 3 policy families (F03-shipping, F04-subscriptions, F12-authentication). Its scores will reflect few policy types and have high variance; it is not a broad held-out benchmark.",
+    "Some sections reference documents in another split's families. Grouping cannot remove this; the referencing sentences mostly name the other policy rather than restate it, but a few restate its rule (see cross_family_references)."
+  ],
+  "file_sha256": {
+    "audit_sample.json": "efb2a0213a9063bb34a919db1ad5f0b06128f725ab8df21c28dfb1f4c56bc20c",
+    "excluded.jsonl": "1b30d5b56e15b0e08acd602fba8a03d4a22851bccf20bcbf383db7f752055025",
+    "reviews.snapshot.jsonl": "b2af45cb07162a1d171d904a839b804488dfecb354d52059260d554d5ec7ff14",
+    "test.jsonl": "7272a3f8221bd6cc8b8aac1e445d0574943055303970cf0ae546f0784b275da8",
+    "train.jsonl": "567e3cb70f4305212c82f63200bf75aa1835f7ad1e1a1fe35193b47ed6594c4e",
+    "validation.jsonl": "fce4387961dc232ae985a5c2a55bb12cf49275cf0cdf363c124189ace917abaa"
+  }
+}

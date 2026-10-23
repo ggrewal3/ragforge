@@ -1,5 +1,7 @@
-# Tested with Python 3.13, numpy 2.5.4, torch 2.14.1, sentence-transformers 6.1.0, google-genai 2.31.0.
+# Tested with Python 3.13, numpy 2.5.4, torch 2.14.1, sentence-transformers 6.1.0, transformers 5.20.1,
+# google-genai 2.31.0.
 numpy>=1.26,<3
 torch>=2.6,<3
 sentence-transformers>=3.0,<7
+transformers>=4.41,<6            # already a sentence-transformers dependency; imported directly by src/nli.py (M6.1)
 google-genai>=2.0,<3
