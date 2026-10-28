@@ -19,8 +19,9 @@ The project deliberately avoids RAG frameworks (LangChain, LlamaIndex) and vecto
 - **M4** (grounded answers with Gemini: structured output, citation-ID validation, dry-run and opt-in live evaluation): implemented and tested offline. No live Gemini run yet (see [M4](#m4--grounded-generation-with-gemini)).
 - **M5** (claim extraction, claim-evidence verification, one bounded revision, verification benchmark): implemented and tested offline. No live Gemini run yet, so no claim that it improves accuracy (see [M5](#m5--claim-level-verification-and-self-correction)).
 - **M6.1** (zero-shot local NLI baseline on the verification benchmark): implemented and measured. Not fine-tuned, not wired into M5 (see [M6.1](#m61--local-nli-transformer-baseline)).
-- **M6.2** (policy NLI dataset: hand-authored facts, deterministic generation, family-level splits, leakage audit, review workflow): implemented. 1,271 examples, all draft labels, none human-reviewed yet. A strict review / freeze gate and a lighter 50-example random audit with an experimental freeze are implemented; M6.3 may train on the experimental freeze once the sample is reviewed (see [M6.2](#m62--policy-nli-dataset)).
-- M6.3 and later: not implemented.
+- **M6.2** (policy NLI dataset: hand-authored facts, deterministic generation, family-level splits, leakage audit, review workflow): implemented. 1,271 examples. Experimentally frozen as `v0.1-exp` after a 50-example random audit (50/50 accepted); 94 labels human-reviewed, the rest AI-authored drafts (see [M6.2](#m62--policy-nli-dataset)).
+- **M6.3** (V1 pretrained vs V2 frozen encoder vs V3 full fine-tuning; explicit PyTorch loop, validation-only selection): V1–V3 run; V3 selected on validation (macro-F1 0.849). Final held-out test (once, 196 examples): accuracy 0.934, macro-F1 0.925, false-SUPPORTED 1/105. Not yet integrated into M5 (see [M6.3](#m63--nli-fine-tuning-experiments)).
+- M6.4 and later: not implemented.
 
 ## M1 Architecture
 
@@ -79,6 +80,8 @@ data/nli/reviews.jsonl               append-only, hash-chained human decisions (
 data/nli/frozen/<version>/           immutable snapshots (created only by --freeze or --freeze-experimental)
 data/nli/audit_sample_v1.json        the 50-example stratified random audit sample (seed 6203)
 src/nli_review.py                    review tool, shortcut audit, freeze and frozen-hash verification
+src/nli_train.py                     M6.3 V1/V2/V3 experiments: training loop, validation metrics, run records, CLI
+artifacts/nli/m6.3/<run>/            experiment outputs and checkpoints (ignored by Git)
 data/evaluations/verification_claims.json  40 hand-labeled claim-evidence examples (M5, draft labels)
 src/retrieve.py                      dense retrieval, search() for all methods, retrieval CLI
 src/evaluate.py                      benchmark: metrics, splits, failure analysis, method comparisons
@@ -91,6 +94,7 @@ tests/test_nli.py                    M6.1 tests (fake tokenizer and model; real 
 tests/test_nli_dataset.py            M6.2 tests (synthetic documents and the real facts file; no network)
 tests/test_nli_review.py             review, resume, history, tamper detection, freeze and shortcut-audit tests
 tests/test_nli_sample.py             audit sampling, agreement, experimental freeze and frozen-data loading tests
+tests/test_nli_train.py              M6.3 tests (tiny random RoBERTa + fake tokenizer; no download)
 .env.example                         template for GEMINI_API_KEY / GEMINI_MODEL (copy to .env)
 tests/fixtures/dense_regression.json dense top-5 results recorded before M2, for regression checks
 tests/fixtures/hybrid_regression.json BM25 and default-hybrid top-10 recorded before M2.5
@@ -1454,8 +1458,177 @@ validation, _ = load_frozen("v0.1-exp", "validation")
 - **Residual leakage.** Cross-family references and the shared corpus with the M5 benchmark remain (see above).
 - **Heuristic checks.** They catch numeric, negation, scope and overlap anomalies only; they do not verify meaning.
 
+## M6.3 — NLI Fine-Tuning Experiments
+
+M6.3 measures how much domain adaptation helps a small NLI cross-encoder verify policy claims. It compares three variants of the same checkpoint on the same data:
+- **V1:** the pretrained model with no training.
+- **V2:** a frozen encoder with a trainable pretrained head.
+- **V3:** full fine-tuning.
+
+It is a learning and measurement exercise, not a production verifier, and it is not wired into M5.
+
+**Status:** V1, V2 and V3 have been run on validation, and V3 was selected before the test split was opened (validation accuracy 0.874, macro-F1 0.849, false-SUPPORTED rate 0.089, best epoch 2). V3 was then evaluated once on the held-out test split: accuracy 0.934, macro-F1 0.925, false-SUPPORTED 1/105 (see [Final held-out test](#final-held-out-test)). These results are final and were not used to retune anything.
+
+### Data
+
+- **Source:** the experimental freeze `v0.1-exp` (`experimental_ai_labeled_sample_audited`), loaded through `load_frozen()`, which verifies every file hash first.
+- **Size:** 884 training and 190 validation examples (1,270 after one rejected example).
+- **Label provenance:** only 94 labels are human-reviewed, 7 of them in validation. Every other label is an AI-authored draft, and the frozen sample audit (50/50 accepted, 95% CI 0.929–1.0) estimates rather than guarantees their quality. Scores therefore measure **agreement with mostly AI-authored labels**.
+- **Split use:** train drives gradient updates; validation drives checkpoint selection and early stopping. **The test split is never loaded by training or validation commands:** `load_split()` refuses it. Only the separate [`--test`](#final-held-out-test) command reads it. (Verifying a freeze hashes all its files, including `test.jsonl`, without parsing them.)
+- **Family separation:** policy families stay separated. Validation contains only 3 families (workplace, development, classification), none of them in train.
+- **Input:** the premise is the evidence text the label was written against (one sentence or one section) and the hypothesis is the claim, truncated `only_first` at 512 tokens. The longest pair is 184 tokens, so nothing is cut. This format was fixed before any run. Note that M6.1's verifier adds titles to the premise, so M6.4 must align the two.
+
+### Model and variants
+
+- **Checkpoint:** `cross-encoder/nli-MiniLM2-L6-H768` at the pinned M6.1 revision `b95119c`, a `RobertaForSequenceClassification`.
+- **Label mapping:** class indices come from the checkpoint's `id2label`: CONTRADICTED = 0, SUPPORTED = 1, INSUFFICIENT_EVIDENCE = 2.
+- **Fresh start for every variant:** each variant loads the pretrained weights from scratch and never starts from another run.
+- **No re-initialised weights:** loading fails if any weight, including the pretrained head, would be randomly initialised. The current checkpoint loads with no missing, unexpected or mismatched keys.
+
+| | V1 pretrained | V2 frozen encoder | V3 full fine-tuning |
+|---|---|---|---|
+| Trainable | nothing | `classifier.dense` + `classifier.out_proj`: **592,899** (0.72%) | everything: **82,120,707** |
+| Encoder | eval mode | frozen and kept in eval mode (dropout off, fixed features) | trains with dropout |
+| Optimizer | — | AdamW, lr 1e-3, weight decay 0.01 | AdamW, lr 2e-5, weight decay 0.01 |
+| Batch / max epochs | — / — | 16 / 10 | 8 / 5 |
+| Shared settings | | cross-entropy, gradient clipping at norm 1.0, validation every epoch, early stopping on validation macro-F1 (patience 2), seed 42, identical shuffling order | |
+
+**The training loop** in [src/nli_train.py](src/nli_train.py) is written out explicitly (no Hugging Face `Trainer`). Each step:
+1. loads a batch;
+2. moves it to the device;
+3. runs the forward pass;
+4. computes cross-entropy on the model's logits against the mapped label IDs;
+5. clears gradients;
+6. backpropagates;
+7. clips gradients;
+8. steps the optimizer;
+9. tracks the loss.
+
+After each epoch it validates under `torch.inference_mode()` and saves the best checkpoint.
+- **Safety checks:** the optimizer is checked to hold exactly the trainable parameters, and the frozen variant is checked to have no trainable encoder weight.
+- **Seeding:** Python, NumPy and PyTorch (CPU and MPS) are seeded. MPS kernels are not guaranteed to be bit-for-bit deterministic, so runs on the GPU can differ slightly; on the CPU, tests confirm identical losses for the same seed.
+
+### Setup and devices
+
+- **Dependencies:** nothing new; torch, transformers and numpy are already in `requirements.txt`.
+- **Checkpoint:** must be in the local Hugging Face cache (it is after M6.1). Commands refuse to download unless `--allow-download` is given.
+- **Device:** `--device auto` (the default) uses Apple MPS when available, then CUDA, then CPU. `--device cpu` forces the CPU.
+
+### Commands
+
+```bash
+python -m src.nli_train --baseline                 # V1: pretrained model on validation (no parameter updates)
+python -m src.nli_train --train frozen             # V2
+python -m src.nli_train --train full               # V3
+python -m src.nli_train --compare                  # all completed runs + cue-only and majority baselines
+python -m src.nli_train --evaluate artifacts/nli/m6.3/<run>   # re-evaluate a saved best checkpoint on validation
+python -m src.nli_train --test artifacts/nli/m6.3/<run>       # FINAL held-out test, once (see below)
+python -m unittest discover -s tests -p "test_nli_train.py"   # offline tests
+```
+
+**Run outputs:** each run gets its own directory, `artifacts/nli/m6.3/<variant>-seed42-<timestamp>/`, or `--run-name`. Existing directories are never overwritten. `artifacts/` is ignored by Git, so checkpoints of about 330 MB are never committed.
+- **`config.json`:**
+  - the variant and hyperparameters;
+  - the seed;
+  - the model and revision, and the label IDs;
+  - trainable and total parameter counts;
+  - the device, library versions and git commit;
+  - the dataset version, manifest hash and file hashes;
+  - label-source counts.
+- **`metrics.json`:**
+  - all of the above;
+  - per-epoch train loss, validation loss, accuracy, macro-F1 and false-SUPPORTED rate;
+  - the best epoch, whether training stopped early, and the training time;
+  - the names of the trainable parameters;
+  - full validation metrics for the best checkpoint.
+- **`best/`:** model weights, config and tokenizer.
+- **`validation_predictions.json`:** gold label, prediction, probabilities and logits per validation example.
+
+### Metrics
+
+Every variant is scored on the same 190 validation examples. The scores:
+- **Overall:** accuracy, macro-F1, and per-class precision, recall and F1.
+- **Confusion matrix.**
+- **False-SUPPORTED rate:** non-SUPPORTED examples predicted SUPPORTED ÷ all non-SUPPORTED examples.
+- **Validation loss:** mean cross-entropy.
+- **Inference latency:** ms per example, after one untimed warm-up batch.
+
+Each score is also broken down by:
+- evidence format (sentence vs full section);
+- policy family;
+- gold label;
+- phenomenon;
+- label source (human-reviewed vs AI draft; only 7 validation examples are human-reviewed).
+
+**Reference baselines on the same validation split** (`--compare` prints them):
+
+| Baseline | Accuracy | Macro-F1 | False-SUPPORTED rate | Notes |
+|---|---|---|---|---|
+| Cue-only rule, reported in M6.2 (draft labels) | 0.758 | — | — | test 0.730 |
+| Cue-only rule, recomputed on frozen `v0.1-exp` | 0.758 | 0.732 | 0.307 | refit on frozen train; sentence 0.806, full section 0.707 |
+| Majority class (SUPPORTED) | 0.468 | — | 1.000 | |
+
+The recomputed cue rule recalls 97% of SUPPORTED examples but wrongly accepts 31% of the rest. A fine-tuned model is only interesting if it beats this rule on macro-F1 and the false-SUPPORTED rate, not just on accuracy, and does so across both formats and all three validation families. **Do not select a model on accuracy alone.**
+
+### Final held-out test
+
+**Why the test split is held out.** Every decision in M6.3 (early stopping, the best epoch, choosing V3 over V1 and V2) was made on validation, so validation scores are optimistically biased. The 196 test examples come from policy families seen in neither train nor validation, and nothing has been tuned on them. A single evaluation on them is the only unbiased estimate of how the selected model does on new policies.
+
+**Why V3 was selected first.** Choosing between V1, V2 and V3 is itself a form of tuning. If the test split were used to choose, its score would be as biased as the validation score. So the choice was fixed on validation (V3: macro-F1 0.849, false-SUPPORTED 0.089, best epoch 2, run `v3-full-seed42-20261028-055715`) before any test example was read, and only that checkpoint is tested.
+
+**Running it** (once):
+
+```bash
+python -m src.nli_train --test artifacts/nli/m6.3/v3-full-seed42-20261028-055715
+```
+
+- **Pre-flight checks, before any test data is read.** The command refuses unless:
+  - the run is a completed V2/V3 training run with a `best/` checkpoint;
+  - it was trained on the same frozen version, with the same manifest hash;
+  - no test results exist yet.
+- **Loading.** The test split is loaded with `load_frozen(..., "test", allow_test=True)`, after the usual hash verification.
+- **Evaluation.** It runs the run's own `best/` checkpoint, through the same input formatting, `max_length` and label IDs as training, and the same `evaluate()` and metric functions as validation.
+- **No training.** There is no optimizer, no gradients (`inference_mode`, every `requires_grad` off) and no checkpoint selection. A hash of all parameters is compared before and after, and nothing is written if they differ.
+- **Outputs.** It writes `RUN_DIR/test_metrics.json` and `RUN_DIR/test_predictions.jsonl` next to, never over, the validation files. Both are created exclusively, so a second `--test` on the same run exits with an error instead of re-running.
+  - `test_metrics.json` records the checkpoint's file hashes, the training and test dataset provenance, the environment and the timestamp.
+  - The metrics are the same as for validation: accuracy, macro-F1, per-class scores, the confusion matrix, the false-SUPPORTED rate and count, loss, latency, and the slices by format, family, phenomenon and label source.
+- **Isolation.** No other command reads or triggers the test split, and `--compare` lists validation results only.
+
+**Do not retune on test numbers.** The test score is final. Changing hyperparameters, retraining, picking another epoch or variant, or changing the premise format because of test results would turn the test split into a second validation split and leave no unbiased estimate. Any such change needs a new held-out split, which in practice means new policy families, before it can be evaluated again. Report the test numbers next to the validation numbers, whatever they are.
+
+### Final held-out results (V3, run once)
+
+Run `v3-full-seed42-20261028-055715`, best epoch 2, evaluated once on the 196 test examples of `v0.1-exp` (3 policy families unseen in train and validation). The results are frozen in the run's `test_metrics.json` and `test_predictions.jsonl`, which are not committed.
+
+| Split | Accuracy | Macro-F1 | False-SUPPORTED | Loss |
+|---|---|---|---|---|
+| Validation (190; used for selection) | 0.874 | 0.849 | 0.089 | — |
+| **Test (196; held out)** | **0.934** | **0.925** | **0.010 (1/105)** | 0.219 |
+
+| Test class | Precision | Recall | F1 | Support |
+|---|---|---|---|---|
+| SUPPORTED | 0.989 | 0.945 | 0.966 | 91 |
+| CONTRADICTED | 0.880 | 0.943 | 0.910 | 70 |
+| INSUFFICIENT_EVIDENCE | 0.912 | 0.886 | 0.899 | 35 |
+
+- **By format:** sentence 0.932 accuracy / 0.925 F1 (n=103); full section 0.935 / 0.925 (n=93).
+- **By family (accuracy):** F03-shipping 0.875 (n=56), F04-subscriptions 0.978 (n=45), F12-authentication 0.947 (n=95).
+- **By label source:** AI-draft 0.929 (n=182); human-reviewed 1.000 (n=14).
+- **Latency:** 2.0 ms per example (batch 32, Apple MPS).
+
+**How to read this.** The test score is higher than validation. With 3 families per split, that most likely reflects which families landed in each split rather than real improvement: one family alone ranges from 0.875 to 0.978. 182 of the 196 test labels are AI-authored drafts, so the score measures agreement with those labels. These are in-distribution policy texts from the same authoring process, not real-world policies.
+
+### M6.3 limitations
+
+- **Labels:** mostly AI-authored and unreviewed. Models may learn the author's conventions and the shortcut cues documented in M6.2.
+- **Validation:** 190 examples from only 3 policy families, so small differences are noise. One run per variant with one seed gives no variance estimate.
+- **Selection:** early stopping and checkpoint selection use the same validation split that is reported, so the best-epoch validation score is optimistically biased. The test split corrected this once, at the end (see the final results above).
+- **Configurations:** fixed in advance; no hyperparameter search. A different learning rate or epoch budget could change the ranking.
+- **Determinism:** MPS training is not bit-for-bit deterministic.
+- **Scope:** no fine-tuned model is integrated into M5 or production-ready. Integration, including aligning the premise format with M6.1's verifier, is M6.4.
+
 ## Future Milestones (not implemented)
 
-- **M6.3–M6.4**: training the local verifier (pretrained vs frozen encoder vs full fine-tuning) and integration into M5
+- **M6.4**: integrating a selected local verifier into M5 (after a single final test-split evaluation)
 - **M7**: Prompt-injection attacks and defenses
 - **M8**: Automated evaluation and ablation studies

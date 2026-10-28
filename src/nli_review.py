@@ -400,6 +400,33 @@ RECOMMENDATIONS = {
 }
 
 
+def _cue_key(cues):
+    return (cues["numbers_not_in_evidence"], cues["direct_quotation"], cues["claim_has_negation"],
+            cues["content_overlap"], cues["evidence_format"])
+
+
+def fit_cue_rule(train_examples):
+    """The cue-only shortcut baseline: (predict(example) -> label, majority label), fit on training examples only.
+
+    It predicts the majority training label for each combination of surface cues
+    (number mismatch, near-verbatim copy, negation, overlap band, evidence format),
+    falling back to the overall majority label; ties follow LABEL_VALUES order.
+    """
+    majority_label = Counter(e["label"] for e in train_examples).most_common(1)[0][0] if train_examples else None
+    table = defaultdict(Counter)
+    for e in train_examples:
+        table[_cue_key(text_cues(e))][e["label"]] += 1
+
+    def predict(example):
+        counts = table.get(_cue_key(text_cues(example)))
+        if not counts:
+            return majority_label
+        best = max(counts.values())
+        return next(label for label in nd.LABEL_VALUES if counts[label] == best)
+
+    return predict, majority_label
+
+
 def shortcut_audit(examples):
     """Label associations a model could exploit without verifying anything. Reports; never rewrites data."""
     phenomenon_table = {}
@@ -424,30 +451,14 @@ def shortcut_audit(examples):
                        for label in nd.LABEL_VALUES if any(e["label"] == label for e in examples)}
 
     # Cue-only baseline: majority label per combination of text cues, fit on train, scored on validation/test.
-    def key(cues):
-        return (cues["numbers_not_in_evidence"], cues["direct_quotation"], cues["claim_has_negation"],
-                cues["content_overlap"], cues["evidence_format"])
-
-    train = [(e, c) for e, c in cue_rows if e["split"] == "train"]
-    majority_label = Counter(e["label"] for e, _ in train).most_common(1)[0][0] if train else None
-    table = defaultdict(Counter)
-    for e, cues in train:
-        table[key(cues)][e["label"]] += 1
-
-    def predict(cues):
-        counts = table.get(key(cues))
-        if not counts:
-            return majority_label
-        best = max(counts.values())
-        return next(label for label in nd.LABEL_VALUES if counts[label] == best)
-
+    predict, majority_label = fit_cue_rule([e for e, _ in cue_rows if e["split"] == "train"])
     baseline = {}
     for split in nd.SPLITS:
         rows = [(e, c) for e, c in cue_rows if e["split"] == split]
         if rows:
             baseline[split] = {
                 "n": len(rows),
-                "cue_rule_accuracy": round(sum(predict(c) == e["label"] for e, c in rows) / len(rows), 3),
+                "cue_rule_accuracy": round(sum(predict(e) == e["label"] for e, _ in rows) / len(rows), 3),
                 "majority_class_accuracy": round(sum(e["label"] == majority_label for e, _ in rows) / len(rows), 3),
             }
 

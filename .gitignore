@@ -28,6 +28,8 @@ results/
 # Hugging Face cache under ~/.cache/huggingface, outside the repo)
 models/
 checkpoints/
+# M6.3 experiment outputs, including fine-tuned weights (hundreds of MB); never committed
+artifacts/
 *.safetensors
 *.bin
 *.pt
