@@ -5,7 +5,10 @@ Usage:
     python -m src.rag --question "..." --method dense --evidence-k 3
     python -m src.rag --question "..." --model gemini-3.6-flash --timeout 30
     python -m src.rag --question "..." --json          # full structured result as JSON
-    python -m src.rag --question "..." --verify        # M5: claim verification + at most one revision
+    python -m src.rag --question "..." --verify        # claim verification with the local V3 NLI model (M6.4A)
+    python -m src.rag --question "..." --verify --revise          # M6.4B: one Gemini correction guided by V3 feedback
+    python -m src.rag --question "..." --verify --verifier gemini            # M5 Gemini verifier, no revision
+    python -m src.rag --question "..." --verify --verifier gemini --revise   # M5 path with one revision
 
 Pipeline: question -> retrieval (default hybrid 0.6 / 0.4, top 5, no reranking)
 -> grounded prompt -> Gemini structured output -> schema validation -> citation
@@ -20,9 +23,17 @@ Each failure has its own status so they are never confused:
     answered          valid output whose citations all refer to supplied sections
 "answered" is not "correct": citations are checked for existence, not support.
 
---verify (M5, off by default) adds claim extraction, claim-evidence
-verification and at most one revision; see src/self_correction.py for its
-statuses. Without --verify the M4 path is unchanged.
+--verify (off by default) adds Gemini claim extraction and claim-evidence
+verification. The default verifier is the local fine-tuned V3 NLI model
+(src/local_verifier.py), loaded before any Gemini request; if it cannot load,
+the command stops with a fail-closed result and makes no Gemini call. An
+answer with any claim that is not SUPPORTED is withheld; nothing is revised
+unless --revise is given. With --revise, a failed answer gets exactly one Gemini
+correction (guided by the local verifier's per-claim feedback, or by the M5
+verdicts with --verifier gemini|mock), whose claims are extracted and verified
+afresh against the same evidence; it is returned only if every claim is
+SUPPORTED. See src/self_correction.py for the statuses. Without --verify the M4
+path is unchanged.
 """
 
 import argparse
@@ -49,6 +60,7 @@ RAG_WEIGHTS = (0.6, 0.4)       # the M2.5 / M3 comparison configuration
 DEFAULT_EVIDENCE_K = 5
 WEIGHTED_METHODS = ("hybrid", "hybrid-rerank")
 
+VERIFIERS = ("nli", "gemini", "mock")
 STATUSES = ("answered", "abstained", "citation_failure", "invalid_output", "llm_error", "retrieval_error")
 
 
@@ -219,6 +231,9 @@ def format_verified_result(result):
     if result["status"] == "verified_answer":
         lines += ["Verified answer:", f"  {result['answer']}", "",
                   f"Citations: {', '.join(result['citations']) or '(none)'}"]
+    elif verification["outcome"] == "unverified":
+        lines += ["Answer withheld: not every claim could be verified (verification only; no revision attempted).",
+                  f"  {result['answer']}"]
     elif result["status"] == "abstained":
         lines += ["Abstained:", f"  {result['answer']}"]
     else:
@@ -233,6 +248,12 @@ def format_verified_result(result):
             lines.append(f"  extraction failed: {extraction['error']['message']}")
             continue
         verdicts = {r["claim_id"]: r for r in check["results"]}
+        trace = {t["claim_id"]: t for t in (check.get("trace") or {}).get("claims", [])}
+        if check.get("trace"):
+            model = check["trace"]["model"]
+            integrity = model["integrity"]
+            lines.append(f"  model {model['identifier']} on {model['device']}; checkpoint files {integrity['files']}, "
+                         f"parameters {integrity['parameters']}")
         for claim in extraction["claims"]:
             item = verdicts.get(claim["claim_id"])
             verdict = item["verdict"] if item else "NOT VERIFIED"
@@ -240,10 +261,24 @@ def format_verified_result(result):
             lines.append(f"  {claim['claim_id']} {verdict:<22}{evidence} {claim['text']}")
             if item and item["verdict"] != "SUPPORTED":
                 lines.append(f"      {item['explanation']}")
+            detail = trace.get(claim["claim_id"])
+            if detail:
+                lines.append(f"      reason: {detail['reason']}" + ("; possible compound claim ("
+                                                                     + ", ".join(detail["compound_signals"]) + ")"
+                                                                     if detail["possible_compound"] else ""))
+                for premise in detail["premises"]:
+                    label = premise["nli_label"] or f"unresolved ({premise['unresolved_reason']})"
+                    lines.append(f"        {premise['section_id']} [{', '.join(premise['chunk_ids'])}]: {label}, "
+                                 f"{premise['input_tokens']} tokens" + ("; incomplete section"
+                                                                        if premise["known_incomplete"] else ""))
+        if trace:
+            lines.append("  (model labels per section; softmax scores in --json output are uncalibrated)")
         if check["status"] == "failed":
             lines.append(f"  verification failed: {check['error']['message']}")
     if verification["revision_attempted"]:
-        lines.append(f"Revision: {verification['revision']['status']} (at most one revision is attempted)")
+        revision = verification["revision"]
+        lines.append(f"Revision: {revision['status']} (prompt: {revision.get('prompt', 'm5_verdicts')}; "
+                     f"{len(revision.get('feedback') or [])} failed claim(s) sent; at most one revision is attempted)")
 
     latency = result["latency_s"]
     lines += ["", f"Latency: baseline {latency['baseline']:.3f} s, verification {latency['verification']:.3f} s, "
@@ -280,14 +315,25 @@ def build_parser():
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_S, help="request timeout in seconds")
     parser.add_argument("--json", action="store_true", help="print the full result as JSON")
     parser.add_argument("--verify", action="store_true",
-                        help="M5: extract claims, verify them against the evidence, revise at most once (off by default)")
-    parser.add_argument("--verifier", choices=("gemini", "mock"), default="gemini",
-                        help="with --verify: claim verifier (default gemini; mock = offline lexical heuristic)")
+                        help="extract claims (Gemini) and verify them against the evidence; unverified answers are "
+                             "withheld (off by default)")
+    parser.add_argument("--verifier", choices=VERIFIERS, default=None,
+                        help="with --verify: claim verifier (default nli = local fine-tuned V3 NLI model; gemini = M5 "
+                             "LLM verifier; mock = offline lexical heuristic)")
+    parser.add_argument("--nli-run", metavar="RUN_DIR", default=None,
+                        help="with --verify and the nli verifier: M6.3 run directory holding best/ "
+                             "(default: the selected V3 run)")
+    parser.add_argument("--nli-device", choices=("auto", "mps", "cuda", "cpu"), default=None,
+                        help="with --verify and the nli verifier: inference device (default auto: MPS, CUDA, CPU)")
+    parser.add_argument("--revise", action="store_true",
+                        help="with --verify: one Gemini correction of an answer that fails verification, guided by "
+                             "the verifier's feedback, then a fresh check; returned only if fully verified "
+                             "(off by default)")
     return parser
 
 
-def main(argv=None, llm=None, index=None):
-    """CLI entry point. `llm` and `index` can be injected (tests); otherwise they are built here."""
+def main(argv=None, llm=None, index=None, verifier=None):
+    """CLI entry point. `llm`, `index` and `verifier` can be injected (tests); otherwise they are built here."""
     from src.ingest import PROJECT_ROOT
     from src.retrieve import build_search_index
 
@@ -300,8 +346,26 @@ def main(argv=None, llm=None, index=None):
         retrieval_options(args.method, args.dense_weight, args.bm25_weight)
     except ValueError as error:
         parser.error(str(error))
-    if args.verifier != "gemini" and not args.verify:
-        parser.error("--verifier requires --verify.")
+    if not args.verify:
+        for flag, value in (("--verifier", args.verifier), ("--nli-run", args.nli_run),
+                            ("--nli-device", args.nli_device), ("--revise", args.revise)):
+            if value:
+                parser.error(f"{flag} requires --verify.")
+    verifier_name = args.verifier or "nli"
+    if verifier_name != "nli" and (args.nli_run or args.nli_device):
+        parser.error("--nli-run and --nli-device apply only to the nli verifier.")
+    load_s = None
+    if args.verify and verifier_name == "nli":
+        # Load (and integrity-check) the local model before any Gemini request, so a missing or
+        # corrupted checkpoint costs nothing and never falls back to another verifier.
+        from src.local_verifier import DEFAULT_V3_RUN, LocalNLIVerifier
+        from src.verification import VerifierUnavailable
+
+        verifier = verifier or LocalNLIVerifier(args.nli_run or DEFAULT_V3_RUN, args.nli_device or "auto")
+        try:
+            load_s = verifier.load().info["load_s"]
+        except VerifierUnavailable as error:
+            return _verifier_unavailable(args, verifier, error)
 
     load_env_file(PROJECT_ROOT / ".env")
     if llm is None:
@@ -316,7 +380,7 @@ def main(argv=None, llm=None, index=None):
     if index is None:
         index = build_search_index(methods=(args.method,))
     if args.verify:
-        return _main_verified(args, index, llm)
+        return _main_verified(args, index, llm, verifier, load_s)
     result = answer_question(args.question, index, llm, args.method, args.evidence_k,
                              args.dense_weight, args.bm25_weight)
     if args.json:
@@ -329,19 +393,41 @@ def main(argv=None, llm=None, index=None):
     return 0 if result["status"] in ("answered", "abstained") else 1
 
 
-def _main_verified(args, index, llm):
-    from src.self_correction import answer_question_verified
-    from src.verification import MockVerifier
+def _verifier_unavailable(args, verifier, error):
+    """Fail-closed result when the local verifier cannot load: no generation, no Gemini call, no answer."""
+    result = {"question": args.question, "mode": "verified", "status": "verification_failed", "answer": None,
+              "citations": [], "abstained": None, "verifier": verifier.name,
+              "error": {"kind": error.kind, "message": str(error), "step": "verification", "stage": "setup",
+                        "api_error": False}}
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print("RAGForge — Verified Answer (local NLI verification)")
+        print(f"\nQuestion: {args.question}\nVerifier: {verifier.name}\nStatus: verification_failed\n"
+              f"Error (verification/setup, {error.kind}): {error}\n\n"
+              "No answer was generated: answers are only shown after verification, and the verifier is not "
+              "available. No Gemini request was made. --verifier gemini selects the M5 LLM verifier explicitly.")
+    return 1
 
-    verifier = MockVerifier() if args.verifier == "mock" else None
+
+def _main_verified(args, index, llm, verifier=None, load_s=None):
+    from src.self_correction import answer_question_verified
+    from src.verification import GeminiVerifier, MockVerifier
+
+    if args.verifier == "mock":
+        verifier = MockVerifier()
+    elif args.verifier == "gemini":
+        verifier = GeminiVerifier(llm)
     result = answer_question_verified(args.question, index, llm, verifier=verifier, method=args.method,
                                       evidence_k=args.evidence_k, dense_weight=args.dense_weight,
-                                      bm25_weight=args.bm25_weight)
+                                      bm25_weight=args.bm25_weight, revise=args.revise)
     if args.json:
         print(json.dumps(result, indent=2))
     else:
         print("RAGForge — Verified Answer (Gemini + claim verification)")
         print(format_verified_result(result))
+        if load_s is not None:
+            print(f"Local NLI model load (excluded from latency): {load_s:.2f} s")
         if result["estimated_cost_usd"]["total"] is not None:
             print(f"Pricing source: {PRICING_SOURCE}")
     return 0 if result["status"] in ("verified_answer", "abstained") else 1

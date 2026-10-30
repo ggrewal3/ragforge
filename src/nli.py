@@ -135,6 +135,11 @@ def premise_text(chunk):
     return f"{chunk['title']}, {chunk['section_title']}: {chunk['text']}"
 
 
+def raw_premise_text(chunk):
+    """The evidence text alone, without titles: the premise format the M6.3 fine-tuned models were trained on."""
+    return chunk["text"]
+
+
 def _check_text(value, name):
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{name} must be a non-empty string.")
@@ -216,6 +221,13 @@ class LocalNLI:
     def name(self):
         return f"nli:{self.model_name}"
 
+    def pair_token_counts(self, pairs):
+        """Untruncated token count of each (premise, hypothesis) pair, special tokens included."""
+        if not pairs:
+            return []
+        return [len(ids) for ids in self.tokenizer([p for p, _ in pairs], [h for _, h in pairs],
+                                                   truncation=False)["input_ids"]]
+
     def predict_pairs(self, pairs, premise_ids=None):
         """[(premise, hypothesis), ...] -> [NLIPrediction], in order, batched by batch_size."""
         import torch
@@ -231,7 +243,7 @@ class LocalNLI:
         for start in range(0, len(pairs), self.batch_size):
             batch = pairs[start:start + self.batch_size]
             premises, hypotheses = [p for p, _ in batch], [h for _, h in batch]
-            lengths = [len(ids) for ids in self.tokenizer(premises, hypotheses, truncation=False)["input_ids"]]
+            lengths = self.pair_token_counts(batch)
             encoded = self.tokenizer(premises, hypotheses, truncation="only_first", max_length=self.max_length,
                                      padding=True, return_tensors="pt")
             encoded = {key: value.to(self.device) for key, value in encoded.items()}
@@ -255,12 +267,15 @@ class LocalNLI:
     def predict(self, premise, hypothesis, premise_id=None):
         return self.predict_pairs([(premise, hypothesis)], [premise_id])[0]
 
-    def classify_claim(self, claim, evidence):
-        """One claim against evidence chunks: (verdict, deciding section IDs, explanation, per-section predictions)."""
+    def classify_claim(self, claim, evidence, premise_fn=premise_text):
+        """One claim against evidence chunks: (verdict, deciding section IDs, explanation, per-section predictions).
+
+        `premise_fn` builds each premise; the default (titles + text) is the M6.1 format.
+        """
         _check_text(claim, "Claim (hypothesis)")
         if not evidence:
             raise ValueError("At least one evidence chunk is required.")
-        predictions = self.predict_pairs([(premise_text(chunk), claim) for chunk in evidence],
+        predictions = self.predict_pairs([(premise_fn(chunk), claim) for chunk in evidence],
                                          [chunk["section_id"] for chunk in evidence])
         return (*aggregate_verdict(predictions), predictions)
 

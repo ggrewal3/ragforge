@@ -31,6 +31,7 @@ from src.prompts import (
     GROUNDED_SYSTEM_INSTRUCTION,
     RESPONSE_JSON_SCHEMA,
     REVISION_SYSTEM_INSTRUCTION,
+    TARGETED_REVISION_SYSTEM_INSTRUCTION,
     VERDICTS,
     VERIFICATION_SYSTEM_INSTRUCTION,
     build_extraction_prompt,
@@ -97,7 +98,8 @@ class RoutedLLM:
 
     model = "fake-llm"
     ROUTES = {GROUNDED_SYSTEM_INSTRUCTION: "generate", CLAIM_EXTRACTION_SYSTEM_INSTRUCTION: "extract",
-              VERIFICATION_SYSTEM_INSTRUCTION: "verify", REVISION_SYSTEM_INSTRUCTION: "revise"}
+              VERIFICATION_SYSTEM_INSTRUCTION: "verify", REVISION_SYSTEM_INSTRUCTION: "revise",
+              TARGETED_REVISION_SYSTEM_INSTRUCTION: "revise"}
 
     def __init__(self, **queues):
         self.queues = {route: list(outputs) for route, outputs in queues.items()}
@@ -559,8 +561,10 @@ class VerifiedPipelineTests(unittest.TestCase):
         cls.first = cls.top[0]["section_id"]
 
     def run_pipeline(self, **queues):
+        # The M5 path, selected explicitly: Gemini verifier and one revision (M6.4A defaults are V3, no revision).
         llm = RoutedLLM(**queues)
-        return answer_question_verified(self.question, self.index, llm), llm
+        return answer_question_verified(self.question, self.index, llm, verifier=GeminiVerifier(llm),
+                                        revise=True), llm
 
     def test_verified_answer(self):
         result, llm = self.run_pipeline(generate=[grounded("Reallocations up to $10,000 need no approval.", [self.first])],
@@ -634,7 +638,7 @@ class VerifyCommandLineTests(unittest.TestCase):
                          revise=[grounded("Not covered.", [], abstained=True)])
 
     def test_verified_output(self):
-        code, out, _ = run_cli(rag_main, ["--question", "What does FIN-205.3 say?", "--verify"],
+        code, out, _ = run_cli(rag_main, ["--question", "What does FIN-205.3 say?", "--verify", "--verifier", "gemini"],
                                llm=self.llm(verdicts((S, [self.first]))), index=self.index)
         self.assertEqual(code, 0)
         for text in ("Status: verified_answer", "Outcome: accepted_original", "Verified answer:",
@@ -642,14 +646,15 @@ class VerifyCommandLineTests(unittest.TestCase):
             self.assertIn(text, out)
 
     def test_withheld_on_verification_failure(self):
-        code, out, _ = run_cli(rag_main, ["--question", "What does FIN-205.3 say?", "--verify"],
+        code, out, _ = run_cli(rag_main, ["--question", "What does FIN-205.3 say?", "--verify", "--verifier", "gemini"],
                                llm=self.llm(LLMRequestError("Gemini server error (503).")), index=self.index)
         self.assertEqual(code, 1)
         self.assertIn("Answer withheld", out)
         self.assertNotIn("Verified answer:", out)
 
     def test_json_and_m4_path_unchanged(self):
-        code, out, _ = run_cli(rag_main, ["--question", "What does FIN-205.3 say?", "--verify", "--json"],
+        code, out, _ = run_cli(rag_main, ["--question", "What does FIN-205.3 say?", "--verify", "--verifier", "gemini",
+                                          "--revise", "--json"],
                                llm=self.llm(verdicts((I, []))), index=self.index)
         self.assertEqual(json.loads(out)["status"], "abstained")
         self.assertEqual(code, 0)

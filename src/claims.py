@@ -54,6 +54,7 @@ class StageOutput:
     attempts: int | None = None
     usage: dict = field(default_factory=dict)
     llm_call: bool = False            # True when a (possibly billed) LLM request was made
+    trace: dict | None = None         # optional diagnostics (local NLI verifier); never part of the validated payload
 
 
 def call_llm_stage(llm, system_instruction, user_prompt, schema):

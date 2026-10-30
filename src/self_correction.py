@@ -1,4 +1,13 @@
-"""Claim-level verification and one bounded, evidence-guided revision (M5).
+"""Claim-level verification (M5, M6.4A) and one bounded, evidence-guided revision (M5, M6.4B; explicit only).
+
+Two modes, chosen with `revise`:
+
+    revise=False (default of answer_question_verified, M6.4A)
+       -> extract atomic claims -> verify each claim against the evidence
+            all SUPPORTED   -> accept the original answer
+            otherwise       -> "unverified": the answer is withheld (no revision request is made)
+
+    revise=True (explicit; any verifier):
 
     M4 answer (citations already validated)
        -> extract atomic claims -> verify each claim against the same evidence
@@ -9,6 +18,20 @@
                      all SUPPORTED       -> accept the revision
                      otherwise           -> abstain (the rejected text is not returned)
 
+The default verifier is the local fine-tuned V3 NLI model (src/local_verifier.py);
+the Gemini and mock verifiers remain available by passing them explicitly.
+
+The revision prompt depends on the feedback available (M6.4B):
+  * a verifier that returns a trace (the local NLI verifier) gets
+    build_targeted_revision_prompt(): every claim's verdict, decision reason,
+    supporting / contradicting / unresolved section IDs and per-section model
+    labels, with both sides of any conflicting_evidence claim spelled out;
+  * other verifiers (Gemini, mock) get the unchanged M5 build_revision_prompt().
+Revision is attempted only after a completed, validated verification with at
+least one non-SUPPORTED claim. Infrastructure failures (verifier unavailable,
+failed integrity check, invalid verifier output, extraction failure) end the
+run fail-closed without a revision, because the result could not be trusted.
+
 There is no loop: the revision step is written out once, so at most one
 revision is ever requested. The GeminiClient's own bounded retries (transient
 errors, at most 2) are the only retries.
@@ -17,6 +40,7 @@ Every way this can end is a distinct outcome (`verification.outcome`):
 
     accepted_original         every claim of the M4 answer SUPPORTED
     accepted_revision         the revision's claims all SUPPORTED on a fresh check
+    unverified                revise=False and some claim was not SUPPORTED -> answer withheld (abstention)
     abstained                 the M4 answer or the revision abstained (safe abstention)
     revision_unsupported      the revision still had unsupported claims -> abstention
     extraction_failure        claims could not be extracted (API error, invalid or empty output)
@@ -33,9 +57,15 @@ pass. Failures are fail-closed: the answer is withheld (status
 recorded from a completed, validated verification.
 
 The evidence is the `sources` list of the M4 result, the exact chunks the
-answer was generated from, frozen into read-only mappings. Its fingerprint is
+answer was generated from, frozen into read-only mappings (chunk_id,
+document_id, section_id, title, section_title, text). Its fingerprint is
 recorded and re-checked at the end, so no stage can retrieve or alter
-evidence unnoticed.
+evidence unnoticed. The fingerprint covers chunk_id, section_id and text only,
+exactly as in M5: adding document_id to the snapshot does not change it.
+
+A verifier's StageOutput may carry a `trace` (the local NLI verifier's
+per-claim, per-section predictions); it is stored with the pass as
+verification["trace"] and is never part of the validated payload.
 """
 
 import hashlib
@@ -46,11 +76,10 @@ from types import MappingProxyType
 from src.citations import FAIL, GroundedAnswer, InvalidStructuredOutput, parse_answer, validate_citations
 from src.claims import GeminiClaimExtractor, InvalidClaimsOutput, call_llm_stage, parse_claims
 from src.llm import LLMError, estimate_cost_usd
-from src.prompts import build_revision_prompt
+from src.prompts import build_revision_prompt, build_targeted_revision_prompt
 from src.rag import DEFAULT_EVIDENCE_K, RAG_METHOD, answer_question
 from src.verification import (
     SUPPORTED,
-    GeminiVerifier,
     InvalidVerifierOutput,
     VerifierUnavailable,
     parse_verdicts,
@@ -59,6 +88,7 @@ from src.verification import (
 
 ACCEPTED_ORIGINAL = "accepted_original"
 ACCEPTED_REVISION = "accepted_revision"
+UNVERIFIED = "unverified"
 ABSTAINED = "abstained"
 REVISION_UNSUPPORTED = "revision_unsupported"
 EXTRACTION_FAILURE = "extraction_failure"
@@ -68,7 +98,7 @@ CITATION_FAILURE = "citation_failure"
 REVISION_API_FAILURE = "revision_api_failure"
 REVISION_INVALID_OUTPUT = "revision_invalid_output"
 GENERATION_FAILURE = "generation_failure"
-OUTCOMES = (ACCEPTED_ORIGINAL, ACCEPTED_REVISION, ABSTAINED, REVISION_UNSUPPORTED, EXTRACTION_FAILURE,
+OUTCOMES = (ACCEPTED_ORIGINAL, ACCEPTED_REVISION, UNVERIFIED, ABSTAINED, REVISION_UNSUPPORTED, EXTRACTION_FAILURE,
             VERIFICATION_API_FAILURE, INVALID_VERIFIER_OUTPUT, CITATION_FAILURE, REVISION_API_FAILURE,
             REVISION_INVALID_OUTPUT, GENERATION_FAILURE)
 
@@ -84,11 +114,12 @@ _RAW_LIMIT = 2000
 
 def evidence_snapshot(sources):
     """Read-only copies of the evidence chunks; any attempt to modify them raises TypeError."""
-    keys = ("chunk_id", "section_id", "title", "section_title", "text")
+    keys = ("chunk_id", "document_id", "section_id", "title", "section_title", "text")
     return tuple(MappingProxyType({key: source[key] for key in keys if key in source}) for source in sources)
 
 
 def evidence_fingerprint(evidence):
+    """SHA-256 of [chunk_id, section_id, text] per chunk (the M5 definition; other snapshot fields are excluded)."""
     payload = json.dumps([[c.get("chunk_id"), c["section_id"], c["text"]] for c in evidence], ensure_ascii=False)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
@@ -184,6 +215,8 @@ def _verify_pass(stage, question, text, citations, evidence, supplied, extractor
                                                           api_error=isinstance(error, LLMError)))
         return record, VERIFICATION_API_FAILURE, verification["error"]
     run.record(verification, output, time.perf_counter() - start)
+    if getattr(output, "trace", None) is not None:
+        verification["trace"] = output.trace
     try:
         results = parse_verdicts(output.payload, claims, supplied, citations)
     except InvalidVerifierOutput as error:
@@ -197,12 +230,18 @@ def _verify_pass(stage, question, text, citations, evidence, supplied, extractor
     return record, None, None
 
 
-def verify_and_correct(question, sources, answer, extractor, verifier, reviser):
-    """Verify a citation-valid, non-abstained GroundedAnswer and revise it at most once.
+def verify_and_correct(question, sources, answer, extractor, verifier, reviser=None, revise=True):
+    """Verify a citation-valid, non-abstained GroundedAnswer; with revise=True, revise it at most once.
 
     `sources` is the M4 result's evidence list; `reviser` has the src/llm.py
-    interface. Returns the `verification` dict described in the module docstring.
+    interface and is required (and only used) when revise=True. The revised
+    answer's claims are extracted and verified afresh against the same evidence
+    snapshot; earlier verdicts are never reused. With
+    revise=False a failed check ends as "unverified" and no revision is requested.
+    Returns the `verification` dict described in the module docstring.
     """
+    if revise and reviser is None:
+        raise ValueError("revise=True requires a reviser.")
     evidence = evidence_snapshot(sources)
     fingerprint = evidence_fingerprint(evidence)
     supplied = list(dict.fromkeys(chunk["section_id"] for chunk in evidence))
@@ -211,7 +250,7 @@ def verify_and_correct(question, sources, answer, extractor, verifier, reviser):
         "outcome": None, "final_answer": None, "final_citations": [], "final_abstained": None,
         "extractor": extractor.name, "verifier": verifier.name,
         "evidence_section_ids": supplied, "evidence_fingerprint": fingerprint,
-        "passes": [], "revision_attempted": False, "revision": None, "error": None,
+        "revise": revise, "passes": [], "revision_attempted": False, "revision": None, "error": None,
     }
 
     def finish(outcome, error=None, answer_text=None, citations=(), abstained=None):
@@ -233,25 +272,42 @@ def verify_and_correct(question, sources, answer, extractor, verifier, reviser):
         return finish(failure, error)
     if record["all_supported"]:
         return finish(ACCEPTED_ORIGINAL, answer_text=answer.answer, citations=answer.citations, abstained=False)
+    if not revise:
+        # Verification only (M6.4A): the unverified answer is withheld; its claims and trace stay in "passes".
+        return finish(UNVERIFIED, answer_text=ABSTENTION_MESSAGE, abstained=True)
 
     # The single revision. Same evidence snapshot; no retrieval.
     verification["revision_attempted"] = True
+    trace = record["verification"].get("trace")
+    trace_by_id = {t["claim_id"]: t for t in (trace or {}).get("claims", [])}
     revision = {"component": f"llm:{getattr(reviser, 'model', None)}", "status": None, "answer": None,
-                "citations": [], "abstained": None, "citation_validation": None, "error": None}
+                "citations": [], "abstained": None, "citation_validation": None, "error": None,
+                "prompt": "targeted_nli_feedback" if trace else "m5_verdicts",
+                "feedback": [{"claim_id": r.claim_id, "claim": r.claim, "verdict": r.verdict,
+                              "reason": trace_by_id.get(r.claim_id, {}).get("reason"),
+                              "evidence_section_ids": r.evidence_section_ids,
+                              "supporting_section_ids": trace_by_id.get(r.claim_id, {}).get("supporting_section_ids"),
+                              "contradicting_section_ids": trace_by_id.get(r.claim_id, {}).get(
+                                  "contradicting_section_ids")}
+                             for r in record["_results"] if r.verdict != SUPPORTED],
+                "raw_response": None}
     verification["revision"] = revision
+    prompt = (build_targeted_revision_prompt(question, evidence, answer.answer, record["_results"], trace["claims"])
+              if trace else build_revision_prompt(question, evidence, answer.answer, record["_results"]))
     start = time.perf_counter()
     try:
-        output = call_llm_stage(reviser, *build_revision_prompt(question, evidence, answer.answer, record["_results"]))
+        output = call_llm_stage(reviser, *prompt)
     except LLMError as error:
         run.failed_call(revision, time.perf_counter() - start, llm_call=True)
         revision.update(status="api_failure",
                         error=_error(error.kind, str(error), "revision", "revision", api_error=True))
         return finish(REVISION_API_FAILURE, revision["error"])
     run.record(revision, output, time.perf_counter() - start)
+    revision["raw_response"] = _raw(output.payload)       # the correction model's response, kept for diagnosis
     try:
         revised = parse_answer(output.payload)
     except InvalidStructuredOutput as error:
-        revision.update(status="invalid_output", raw_response=_raw(output.payload),
+        revision.update(status="invalid_output",
                         error=_error("invalid_output", str(error), "revision", "revision"))
         return finish(REVISION_INVALID_OUTPUT, revision["error"])
     report = validate_citations(revised, evidence)
@@ -281,23 +337,30 @@ def verify_and_correct(question, sources, answer, extractor, verifier, reviser):
 def final_status(outcome):
     if outcome in (ACCEPTED_ORIGINAL, ACCEPTED_REVISION):
         return "verified_answer"
-    if outcome in (ABSTAINED, REVISION_UNSUPPORTED):
+    if outcome in (ABSTAINED, REVISION_UNSUPPORTED, UNVERIFIED):
         return "abstained"
     return "verification_failed"
 
 
 def answer_question_verified(question, index, llm, extractor=None, verifier=None, reviser=None, method=RAG_METHOD,
-                             evidence_k=DEFAULT_EVIDENCE_K, dense_weight=None, bm25_weight=None):
-    """M4's answer_question() followed by claim verification and at most one revision.
+                             evidence_k=DEFAULT_EVIDENCE_K, dense_weight=None, bm25_weight=None, revise=False):
+    """M4's answer_question() followed by claim verification (and, only with revise=True, one revision).
 
-    By default extraction, verification and revision use the same `llm` as
-    generation. Top-level answer/citations/abstained are the user-facing
-    result after verification; the untouched M4 result is under "baseline".
+    Defaults (M6.4A): extraction uses `llm` (Gemini); verification uses the local
+    fine-tuned V3 NLI model (src.local_verifier.default_verifier()); no revision.
+    Pass verifier=GeminiVerifier(llm) for the M5 LLM verifier, and revise=True
+    (reviser defaults to `llm`) for one correction: guided by the local
+    verifier's feedback (M6.4B) or, with a Gemini or mock verifier, the M5 prompt. Top-level
+    answer/citations/abstained are the user-facing result after verification;
+    the untouched M4 result is under "baseline".
     """
     baseline = answer_question(question, index, llm, method, evidence_k, dense_weight, bm25_weight)
     extractor = extractor or GeminiClaimExtractor(llm)
-    verifier = verifier or GeminiVerifier(llm)
-    reviser = reviser or llm
+    if verifier is None:
+        from src.local_verifier import default_verifier
+
+        verifier = default_verifier()
+    reviser = (reviser or llm) if revise else None
     start = time.perf_counter()
 
     status, error = None, None
@@ -318,7 +381,8 @@ def answer_question_verified(question, index, llm, extractor=None, verifier=None
                         "llm_calls": 0, "latency_s": 0.0, "usage": {}, "estimated_cost_usd": 0.0}
     else:
         answer = GroundedAnswer(answer=baseline["answer"], citations=baseline["citations"], abstained=False)
-        verification = verify_and_correct(question, baseline["sources"], answer, extractor, verifier, reviser)
+        verification = verify_and_correct(question, baseline["sources"], answer, extractor, verifier, reviser, revise)
+    verification.setdefault("revise", revise)
     verification.setdefault("extractor", extractor.name)
     verification.setdefault("verifier", verifier.name)
     status = status or final_status(verification["outcome"])

@@ -49,6 +49,7 @@ from src.ingest import PROJECT_ROOT
 from src.llm import PRICING_SOURCE, LLMRateLimitError, LLMResponse, load_env_file, sampling_warnings
 from src.rag import DEFAULT_EVIDENCE_K, RAG_METHOD, answer_question, retrieval_options
 from src.self_correction import OUTCOMES, answer_question_verified
+from src.verification import GeminiVerifier
 
 RESULTS_DIR = PROJECT_ROOT / "results" / "generation"
 DEFAULT_LIVE_QUESTIONS = 3
@@ -186,8 +187,13 @@ def run_generation_eval(questions, index, llm, out_path, method=RAG_METHOD, evid
 
     `verify` (M5) is None for the M4 baseline, or a dict with optional
     "extractor", "verifier" and "reviser" (missing ones default to Gemini via
-    `llm`). Verified rows keep the M4 baseline fields and add "verified".
+    `llm`). This harness measures the M5 pipeline, so it pins the Gemini
+    verifier and the single revision (revise=True) explicitly rather than
+    following the M6.4A library defaults (local V3 verifier, no revision).
+    Verified rows keep the M4 baseline fields and add "verified".
     """
+    if verify is not None:
+        verify = {"verifier": GeminiVerifier(llm), "revise": True, **verify}
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     rows, interrupted = [], False
