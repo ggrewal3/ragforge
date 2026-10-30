@@ -39,3 +39,8 @@ artifacts/
 .cache/
 hf_cache/
 .huggingface/
+
+# Local NLI review working files: the generated review queue and the live decision log.
+# The reviewed decisions used for training are committed in data/nli/frozen/v0.1-exp/reviews.snapshot.jsonl.
+data/nli/review_queue_v1.jsonl
+data/nli/reviews.jsonl
